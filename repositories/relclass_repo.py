@@ -5,7 +5,7 @@ def add_relclass(rel_class_name: str, description: str = None) -> int:
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO relClass (relClassName, descriptionRelClass) VALUES (%s, %s) RETURNING id_relClass;",
+                'INSERT INTO "relClass" ("relClassName", "descriptionRelClass") VALUES (%s, %s) RETURNING "id_relClass";',
                 (rel_class_name, description)
             )
             new_id = cur.fetchone()[0]
@@ -19,7 +19,7 @@ def get_relclass(relclass_id: int) -> dict | None:
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id_relClass, relClassName, descriptionRelClass FROM relClass WHERE id_relClass = %s;",
+                'SELECT "id_relClass", "relClassName", "descriptionRelClass" FROM "relClass" WHERE "id_relClass" = %s;',
                 (relclass_id,)
             )
             row = cur.fetchone()
@@ -34,16 +34,16 @@ def update_relclass(relclass_id: int, name: str = None, description: str = None)
             fields = []
             values = []
             if name is not None:
-                fields.append("relClassName = %s")
+                fields.append('"relClassName" = %s')
                 values.append(name)
             if description is not None:
-                fields.append("descriptionRelClass = %s")
+                fields.append('"descriptionRelClass" = %s')
                 values.append(description)
             if not fields:
                 return False
             values.append(relclass_id)
             cur.execute(
-                f"UPDATE relClass SET {', '.join(fields)} WHERE id_relClass = %s;",
+                f'UPDATE "relClass" SET {", ".join(fields)} WHERE "id_relClass" = %s;',
                 values
             )
             conn.commit()
@@ -55,7 +55,7 @@ def delete_relclass(relclass_id: int) -> bool:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM relClass WHERE id_relClass = %s;", (relclass_id,))
+            cur.execute('DELETE FROM "relClass" WHERE "id_relClass" = %s;', (relclass_id,))
             conn.commit()
             return cur.rowcount > 0
     finally:

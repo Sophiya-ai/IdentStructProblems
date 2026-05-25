@@ -5,7 +5,7 @@ def add_relname(name: str, relclass_id: int, description: str = None) -> int:
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO relName (name, id_relClass, descriptionRel) VALUES (%s, %s, %s) RETURNING id_relName;",
+                'INSERT INTO "relName" ("name", "id_relClass", "descriptionRel") VALUES (%s, %s, %s) RETURNING "id_relName";',
                 (name, relclass_id, description)
             )
             new_id = cur.fetchone()[0]
@@ -19,7 +19,7 @@ def get_relname(relname_id: int) -> dict | None:
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id_relName, name, id_relClass, descriptionRel FROM relName WHERE id_relName = %s;",
+                'SELECT "id_relName", "name", "id_relClass", "descriptionRel" FROM "relName" WHERE "id_relName" = %s;',
                 (relname_id,)
             )
             row = cur.fetchone()
@@ -34,19 +34,19 @@ def update_relname(relname_id: int, name: str = None, relclass_id: int = None, d
             fields = []
             values = []
             if name is not None:
-                fields.append("name = %s")
+                fields.append('"name" = %s')
                 values.append(name)
             if relclass_id is not None:
-                fields.append("id_relClass = %s")
+                fields.append('"id_relClass" = %s')
                 values.append(relclass_id)
             if description is not None:
-                fields.append("descriptionRel = %s")
+                fields.append('"descriptionRel" = %s')
                 values.append(description)
             if not fields:
                 return False
             values.append(relname_id)
             cur.execute(
-                f"UPDATE relName SET {', '.join(fields)} WHERE id_relName = %s;",
+                f'UPDATE "relName" SET {", ".join(fields)} WHERE "id_relName" = %s;',
                 values
             )
             conn.commit()
@@ -58,7 +58,7 @@ def delete_relname(relname_id: int) -> bool:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM relName WHERE id_relName = %s;", (relname_id,))
+            cur.execute('DELETE FROM "relName" WHERE "id_relName" = %s;', (relname_id,))
             conn.commit()
             return cur.rowcount > 0
     finally:
