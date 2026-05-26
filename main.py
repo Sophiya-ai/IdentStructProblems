@@ -1,5 +1,6 @@
 from db import close_all, get_connection, put_connection
-from repositories import subproblems_repo, relclass_repo, relname_repo, problem_rels_repo
+from repositories import subproblems_repo, relclass_repo, relname_repo, problem_rels_repo, hierarchy_repo
+from display_hierarchy import show as display_hierarchy
 
 def get_or_create_relclass(name, description):
     # Поиск существующего класса по имени (можно добавить функцию в репозиторий)
@@ -26,7 +27,7 @@ def get_or_create_relname(name, relclass_id, description):
         put_connection(conn)
     return relname_repo.add_relname(name, relclass_id, description)
 
-def demo():
+def fill_demo_data():
     tax_class_id = get_or_create_relclass("Таксономические", "Иерархические связи")
     is_a_id = get_or_create_relname("is-a", tax_class_id, "Отношение класс-подкласс")
 
@@ -43,7 +44,16 @@ def demo():
     for p in results:
         print(p["macro_model"]["sbj"], p["macro_model"]["sit"])
 
-    close_all()
+def demo_hierarchy():
+    """Показать иерархию из БД."""
+    hierarchy = hierarchy_repo.get_full_hierarchy()
+    display_hierarchy(hierarchy, save_json=True)  # выведет в консоль и сохранит в JSON
 
 if __name__ == "__main__":
-    demo()
+    # Сначала можно заполнить БД (если нужно)
+    # fill_demo_data()
+
+    # Показать иерархию
+    demo_hierarchy()
+
+    close_all()
