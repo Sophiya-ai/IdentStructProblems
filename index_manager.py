@@ -2,16 +2,19 @@
 Управление индексами базы данных identProblem.
 Создаёт предусмотренные заранее индексы, если они ещё не существуют,
 и предоставляет функции для их удаления.
-
+Созданные индексы будут автоматически использоваться планировщиком PostgreSQL для ускорения тех операций,
+которые присутствуют в запросах модулей проекта
 """
 from db import get_connection, put_connection
 
 INDEX_DEFINITIONS = {
     # Таблица subproblems:
-        # - Индекс для ускорения обхода иерархии (parent_id)
-        # - GIN-индекс для поиска внутри macro_model (ILIKE, существование ключей, @>)
+        # - Индекс для ускорения обхода иерархии (parent_id) (в get_root_problems() – быстрое нахождение корневых проблем)
+        # - GIN-индекс для поиска внутри macro_model (ILIKE, существование ключей, @>) – ускоряет извлечение текстовых значений из JSONB
         # - Индекс по конкретному ключу macro_model->>'id' (идентификатор макромодели)
-        # - GIN для micro_model
+        # - GIN для micro_model - быстрый поиск по полям микромодели
+        # - GIN-индексы по macro_model на конкретные выражения с текстовым типом, напрямую ускоряющие ILIKE,
+            # например в search_by_name (subproblems_repo.py)
 
     "idx_subproblems_parent_id": (
         'CREATE INDEX IF NOT EXISTS idx_subproblems_parent_id ON "subproblems" ("parent_id");'
@@ -25,7 +28,15 @@ INDEX_DEFINITIONS = {
     "idx_subproblems_micro_gin": (
         'CREATE INDEX IF NOT EXISTS idx_subproblems_micro_gin ON "subproblems" USING gin ("micro_model");'
     ),
+    "idx_subproblems_macro_sbj_gin": (
+        'CREATE INDEX idx_subproblems_macro_sbj_gin ON "subproblems" USING gin (("macro_model"->>\'sbj\') gin_trgm_ops);'
+    ),
+    "idx_subproblems_macro_sit_gin": (
+        'CREATE INDEX idx_subproblems_macro_sit_gin ON "subproblems" USING gin (("macro_model"->>\'sit\') gin_trgm_ops);'
+    ),
     # Таблица relName - индекс для ускорения JOIN по внешнему ключу id_relClass
+    # Полезен, если надо будет получить все типы отношений, принадлежащие определённому классу,
+    # или в отчётах, где нужно группировать/фильтровать по классу отношений
     "idx_relName_id_relClass": (
         'CREATE INDEX IF NOT EXISTS idx_relName_id_relClass ON "relName" ("id_relClass");'
     ),
