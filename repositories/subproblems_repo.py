@@ -98,3 +98,30 @@ def search_by_name(search_term: str) -> list[dict]:
             ]
     finally:
         put_connection(conn)
+
+def get_root_problems() -> list[dict]:
+    """
+    Возвращает список всех корневых проблем (parent_id IS NULL).
+    Каждый элемент содержит:
+        - id: технический id (SERIAL)
+        - macro_id: идентификатор из макромодели (macro_model->>'id') или строка технического id, если отсутствует
+        - macro_model: полная макромодель (dict)
+    """
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                'SELECT "id", "macro_model" FROM "subproblems" WHERE "parent_id" IS NULL ORDER BY "id";'
+            )
+            rows = cur.fetchall()
+            result = []
+            for db_id, macro in rows:
+                macro_id = macro.get('id', str(db_id)) if macro else str(db_id)
+                result.append({
+                    "id": db_id,
+                    "macro_id": macro_id,
+                    "macro_model": macro
+                })
+            return result
+    finally:
+        put_connection(conn)

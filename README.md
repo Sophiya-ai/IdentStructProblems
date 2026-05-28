@@ -64,11 +64,12 @@
     │   ├── hierarchy_repo.py         # Сборка всей иерархии проблем с отображением идентификаторов макромодели и всех связей 
     │   │                              (родитель-потомок + дополнительные связи из problem_relationships). 
     │   │                              Возвращается готовое дерево, пригодное для передачи на фронтенд или сохранения в JSON.    
-    │   ├── subproblems_repo.py       # CRUD + поиск для subproblems
+    │   ├── hierarchy_by_root.py      # Построения иерархии от конкретной корневой проблемы 
+    │   ├── subproblems_repo.py       # CRUD + поиск для subproblems, в том числе вывод списка всех корневых пробле
     │   ├── relclass_repo.py          # CRUD для relClass
     │   ├── relname_repo.py           # CRUD для relName
     │   └── problem_rels_repo.py      # CRUD + запросы для problem_relationships
-    ├── main.py                       # Логика метода
+    ├── main.py                       # Консольное меню для работы с проектом identProblemа
     ├── hierarchy.json                # Иерархия проблем
     ├── display_hierarchy.py          # Отображение иерархии проблем в консоли и сохранения в JSON
     ├── requirements.txt              # Зависимости проекта
