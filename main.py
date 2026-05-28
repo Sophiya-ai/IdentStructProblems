@@ -1,10 +1,7 @@
 """
 Консольное меню для работы с проектом identProblem.
-Позволяет:
-  1. Вывести список корневых проблем.
-  2. Показать иерархию по db_id (вводится с консоли).
-  3. Показать иерархию по макромодельному идентификатору (вводится с консоли).
-  4. Выйти из программы.
+Если в базе данных много проблем, полная загрузка всего дерева (пункты 2–3) может занять много памяти и времени.
+Рекурсивный CTE (пункты 4–5) извлекает только нужное поддерево, что гораздо эффективнее.
 """
 
 from db import close_all, get_connection, put_connection
@@ -13,7 +10,7 @@ from display_hierarchy import show as display_hierarchy
 from repositories.subproblems_repo import get_root_problems
 from repositories.hierarchy_by_root import get_hierarchy_for_root, get_hierarchy_by_macro_id
 from index_manager import ensure_indexes
-
+from repositories.hierarchy_recursive import get_hierarchy_for_root_recursive, get_hierarchy_by_macro_id_recursive
 
 def get_or_create_relclass(name, description):
     # Поиск существующего класса по имени (можно добавить функцию в репозиторий)
@@ -106,17 +103,43 @@ def show_hierarchy_by_macro_id():
     print(f"\n=== Иерархия для корневой проблемы macro_id='{macro_id}' ===")
     display_hierarchy([hierarchy], save_json=False)
 
+def show_hierarchy_recursive_by_db_id():
+    raw = input("Введите db_id корневой проблемы (число): ").strip()
+    if not raw.isdigit():
+        print("Ошибка: db_id должен быть целым числом.")
+        return
+    db_id = int(raw)
+    hierarchy = get_hierarchy_for_root_recursive(db_id)
+    if hierarchy is None:
+        print(f"Проблема с db_id={db_id} не найдена.")
+        return
+    print(f"\n=== Иерархия (рекурсивный CTE) для корневой проблемы db_id={db_id} ===")
+    display_hierarchy([hierarchy], save_json=False)
+
+def show_hierarchy_recursive_by_macro_id():
+    macro_id = input("Введите макромодельный идентификатор (например, P1): ").strip()
+    if not macro_id:
+        print("Ошибка: идентификатор не может быть пустым.")
+        return
+    hierarchy = get_hierarchy_by_macro_id_recursive(macro_id)
+    if hierarchy is None:
+        print(f"Корневая проблема с macro_id='{macro_id}' не найдена.")
+        return
+    print(f"\n=== Иерархия (рекурсивный CTE) для корневой проблемы macro_id='{macro_id}' ===")
+    display_hierarchy([hierarchy], save_json=False)
+
 def menu():
-    """Основное меню программы."""
     while True:
         print("\n" + "=" * 50)
         print("МЕНЮ РАБОТЫ С БАЗОЙ ДАННЫХ 'identProblem'")
         print("=" * 50)
         print("1. Вывести список корневых проблем")
-        print("2. Показать иерархию от выбранной корневой проблемы (по db_id)")
-        print("3. Показать иерархию от выбранной корневой проблемы (по макромодельному id - наименованию проблемы)")
-        print("4. Выход")
-        choice = input("Выберите пункт меню (1-4): ").strip()
+        print("2. Показать иерархию по db_id (полная загрузка)")
+        print("3. Показать иерархию по макромодельному id (полная загрузка)")
+        print("4. Показать иерархию по db_id (рекурсивный CTE)")
+        print("5. Показать иерархию по макромодельному id (рекурсивный CTE)")
+        print("6. Выход")
+        choice = input("Выберите пункт меню: ").strip()
 
         if choice == '1':
             list_roots()
@@ -125,15 +148,19 @@ def menu():
         elif choice == '3':
             show_hierarchy_by_macro_id()
         elif choice == '4':
+            show_hierarchy_recursive_by_db_id()
+        elif choice == '5':
+            show_hierarchy_recursive_by_macro_id()
+        elif choice == '6':
             print("Выход из программы.")
             break
         else:
-            print("Неверный выбор. Пожалуйста, введите число от 1 до 4.")
+            print("Неверный выбор. Пожалуйста, введите число от 1 до 6.")
 
 if __name__ == "__main__":
 
 # гарантирует наличие всех нужных индексов
-    #ensure_indexes()
+    ensure_indexes()
 
 # Сначала можно заполнить БД (если нужно)
     #fill_demo_data()
