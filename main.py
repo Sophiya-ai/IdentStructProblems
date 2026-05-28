@@ -1,18 +1,18 @@
 """
-main.py – консольное меню для работы с проектом identProblem.
+Консольное меню для работы с проектом identProblem.
 Позволяет:
   1. Вывести список корневых проблем.
   2. Показать иерархию по db_id (вводится с консоли).
   3. Показать иерархию по макромодельному идентификатору (вводится с консоли).
   4. Выйти из программы.
 """
+
 from db import close_all, get_connection, put_connection
 from repositories import subproblems_repo, relclass_repo, relname_repo, problem_rels_repo, hierarchy_repo
 from display_hierarchy import show as display_hierarchy
 from repositories.subproblems_repo import get_root_problems
 from repositories.hierarchy_by_root import get_hierarchy_for_root, get_hierarchy_by_macro_id
 from index_manager import ensure_indexes
-
 
 
 def get_or_create_relclass(name, description):
