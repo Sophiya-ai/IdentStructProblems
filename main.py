@@ -56,7 +56,7 @@ def fill_demo_data():
     for p in results:
         print(p["macro_model"]["sbj"], p["macro_model"]["sit"])
 
-def demo_hierarchy():
+def full_hierarchy():
     """Показать полную иерархию из БД."""
     hierarchy = hierarchy_repo.get_full_hierarchy()
     display_hierarchy(hierarchy, save_json=True)  # выведет в консоль и сохранит в JSON
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     # fill_demo_data()
 
     # Показать всю иерархию
-    demo_hierarchy()
+    full_hierarchy()
 
     menu()
 
