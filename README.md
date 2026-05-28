@@ -36,18 +36,18 @@
     │   ├── hierarchy_repo.py         # Сборка всей иерархии проблем с отображением идентификаторов макромодели и всех связей 
     │   │                             # (родитель-потомок + дополнительные связи из problem_relationships). 
     │   │                             # Возвращается готовое дерево, пригодное для передачи на фронтенд или сохранения в JSON.    
-    │   ├── hierarchy_by_root.py      # Построения иерархии от конкретной корневой проблемы
-    │   ├── hierarchy_recursive.py    # Модуль, который использует рекурсивный CTE (WITH RECURSIVE) для эффективного извлечения поддерева конкретной проблемы
-    │   ├── subproblems_repo.py       # CRUD + поиск для subproblems, в том числе вывод списка всех корневых пробле
-    │   ├── relclass_repo.py          # CRUD для relClass
-    │   ├── relname_repo.py           # CRUD для relName
-    │   └── problem_rels_repo.py      # CRUD + запросы для problem_relationships
-    ├── main.py                       # Консольное меню для работы с проектом identProblemа
+    │   ├── hierarchy_by_root.py      # Построения иерархии от конкретной корневой проблемы.
+    │   ├── hierarchy_recursive.py    # Модуль, который использует рекурсивный CTE (WITH RECURSIVE) для эффективного извлечения поддерева конкретной проблемы.
+    │   ├── subproblems_repo.py       # CRUD + поиск для subproblems, в том числе вывод списка всех корневых проблем.
+    │   ├── relclass_repo.py          # CRUD для relClass.
+    │   ├── relname_repo.py           # CRUD для relName.
+    │   └── problem_rels_repo.py      # CRUD + запросы для problem_relationships.
+    ├── main.py                       # Консольное меню для работы с проектом identProblem.
     ├── hierarchy.json                # Иерархия проблем (запрошенная последней)
     ├── display_hierarchy.py          # Отображение иерархии проблем в консоли и сохранения в JSON
-    ├── index_manager.py              # Управление индексами БД identProblem
-    ├── requirements.txt              # Зависимости проекта
-    └── .env                          # Файл с переменными окружения
+    ├── index_manager.py              # Управление индексами БД identProblem.
+    ├── requirements.txt              # Зависимости проекта.
+    └── .env                          # Файл с переменными окружения.
    ```
 
 ## Установка и настройка
