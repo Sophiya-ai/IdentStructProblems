@@ -11,6 +11,7 @@ from repositories import subproblems_repo, relclass_repo, relname_repo, problem_
 from display_hierarchy import show as display_hierarchy
 from repositories.subproblems_repo import get_root_problems
 from repositories.hierarchy_by_root import get_hierarchy_for_root, get_hierarchy_by_macro_id
+from index_manager import ensure_indexes
 
 
 
@@ -130,8 +131,12 @@ def menu():
             print("Неверный выбор. Пожалуйста, введите число от 1 до 4.")
 
 if __name__ == "__main__":
-    # Сначала можно заполнить БД (если нужно)
-    # fill_demo_data()
+
+# гарантирует наличие всех нужных индексов
+    #ensure_indexes()
+
+# Сначала можно заполнить БД (если нужно)
+    #fill_demo_data()
 
     # Показать всю иерархию
     full_hierarchy()
