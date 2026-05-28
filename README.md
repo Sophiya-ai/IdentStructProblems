@@ -23,34 +23,6 @@
 - Установленная база данных `identProblem` с необходимыми таблицами (см. описание структуры)
 - Библиотеки из `requirements.txt`
 
-## Установка и настройка
-
-1. Клонируйте репозиторий:
-   ```bash
-   git clone <url-репозитория>
-   cd identProblem_project
-   ```
-2. Создайте виртуальное окружение и активируйте его:
-   ```bash
-    python -m venv venv
-    source venv/bin/activate   # Linux/macOS
-    venv\Scripts\activate      # Windows
-   ```
-3. Установите зависимости:
-   ```bash
-    pip install -r requirements.txt
-   ```
-4. Настройте переменные окружения. Создайте файл `.env` и отредактируйте, указав параметры подключения к вашей базе данных::
-   
-    ```text
-    DB_HOST=localhost
-    DB_PORT=5432
-    DB_NAME=identProblem
-    DB_USER=postgres
-    DB_PASSWORD=your_password
-    ```
-5. Убедитесь, что структура таблиц в вашей базе данных соответствует описанию (см. ниже).
-
 ## Структура проекта
     
 ```text
@@ -70,11 +42,40 @@
     │   ├── relname_repo.py           # CRUD для relName
     │   └── problem_rels_repo.py      # CRUD + запросы для problem_relationships
     ├── main.py                       # Консольное меню для работы с проектом identProblemа
-    ├── hierarchy.json                # Иерархия проблем
+    ├── hierarchy.json                # Иерархия проблем (запрошенная последней)
     ├── display_hierarchy.py          # Отображение иерархии проблем в консоли и сохранения в JSON
     ├── requirements.txt              # Зависимости проекта
     └── .env                          # Файл с переменными окружения
    ```
+
+## Установка и настройка
+
+1. Клонируйте репозиторий:
+   ```bash
+   git clone <url-репозитория>
+   cd identProblem_project
+   ```
+2. Создайте виртуальное окружение и активируйте его:
+   ```bash
+    python -m venv venv
+    source venv/bin/activate   # Linux/macOS
+    venv\Scripts\activate      # Windows
+   ```
+3. Установите зависимости:
+   ```bash
+    pip install -r requirements.txt
+   ```
+4. Настройте переменные окружения. Создайте файл `.env` и отредактируйте, указав параметры подключения к вашей базе данных:
+   
+    ```text
+    DB_HOST=localhost
+    DB_PORT=5432
+    DB_NAME=identProblem
+    DB_USER=postgres
+    DB_PASSWORD=your_password
+    ```
+5. Убедитесь, что структура таблиц в вашей базе данных соответствует описанию (см. ниже).
+
 ## Описание таблиц базы данных
 ### Проект рассчитан на следующую структуру (должна быть создана предварительно):
 
