@@ -12,6 +12,8 @@ from repositories.hierarchy_by_root import get_hierarchy_for_root, get_hierarchy
 from index_manager import ensure_indexes
 from repositories.hierarchy_recursive import get_hierarchy_for_root_recursive, get_hierarchy_by_macro_id_recursive
 from knowledge_base import load_knowledge_base
+from micro_model import generate_micro_model
+from macro_model import generate_macro_model
 
 def get_or_create_relclass(name, description):
     # Поиск существующего класса по имени (можно добавить функцию в репозиторий)
@@ -140,7 +142,8 @@ def menu():
         print("4. Показать иерархию по db_id (рекурсивный CTE)")
         print("5. Показать иерархию по макромодельному id (рекурсивный CTE)")
         print("6. Загрузить файлы в векторную  БД")
-        print("7. Выход")
+        print("7. Идентификация проблемы")
+        print("8. Выход")
         choice = input("Выберите пункт меню: ").strip()
 
         if choice == '1':
@@ -156,6 +159,14 @@ def menu():
         elif choice == '6':
             load_knowledge_base()
         elif choice == '7':
+            print("\n=== Идентификация проблемы ===")
+            macro, micro = generate_micro_model()
+            new_id = subproblems_repo.add_subproblem(parent_id=None, macro_model=macro, micro_model=micro)
+            print(f"Корневая проблема сохранена с id = {new_id}")
+            # Дальше используем new_id для привязки подпроблем
+
+            #macro, micro = generate_micro_model(macro_dict=generate_macro_model)
+        elif choice == '8':
             print("Выход из программы.")
             break
         else:
