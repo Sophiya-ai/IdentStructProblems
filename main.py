@@ -11,6 +11,7 @@ from repositories.subproblems_repo import get_root_problems
 from repositories.hierarchy_by_root import get_hierarchy_for_root, get_hierarchy_by_macro_id
 from index_manager import ensure_indexes
 from repositories.hierarchy_recursive import get_hierarchy_for_root_recursive, get_hierarchy_by_macro_id_recursive
+from knowledge_base import load_knowledge_base
 
 def get_or_create_relclass(name, description):
     # Поиск существующего класса по имени (можно добавить функцию в репозиторий)
@@ -138,7 +139,8 @@ def menu():
         print("3. Показать иерархию по макромодельному id (полная загрузка)")
         print("4. Показать иерархию по db_id (рекурсивный CTE)")
         print("5. Показать иерархию по макромодельному id (рекурсивный CTE)")
-        print("6. Выход")
+        print("6. Загрузить файлы в векторную  БД")
+        print("7. Выход")
         choice = input("Выберите пункт меню: ").strip()
 
         if choice == '1':
@@ -152,6 +154,8 @@ def menu():
         elif choice == '5':
             show_hierarchy_recursive_by_macro_id()
         elif choice == '6':
+            load_knowledge_base()
+        elif choice == '7':
             print("Выход из программы.")
             break
         else:
