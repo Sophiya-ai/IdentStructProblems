@@ -3,7 +3,7 @@
 Если в базе данных много проблем, полная загрузка всего дерева (пункты 2–3) может занять много памяти и времени.
 Рекурсивный CTE (пункты 4–5) извлекает только нужное поддерево, что гораздо эффективнее.
 """
-
+import json
 from db import close_all, get_connection, put_connection
 from repositories import subproblems_repo, relclass_repo, relname_repo, problem_rels_repo, hierarchy_repo
 from display_hierarchy import show as display_hierarchy
@@ -161,8 +161,10 @@ def menu():
         elif choice == '7':
             print("\n=== Идентификация проблемы ===")
             macro, micro = generate_micro_model()
+            print("\nМикроуровневая модель корневой проблемы сгенерирована:")
+            print(json.dumps(micro, ensure_ascii=False, indent=2))
             new_id = subproblems_repo.add_subproblem(parent_id=None, macro_model=macro, micro_model=micro)
-            print(f"Корневая проблема сохранена с id = {new_id}")
+            print(f"Корневая проблема сохранена в БД с id = {new_id}")
             # Дальше используем new_id для привязки подпроблем
 
             #macro, micro = generate_micro_model(macro_dict=generate_macro_model)
@@ -170,7 +172,7 @@ def menu():
             print("Выход из программы.")
             break
         else:
-            print("Неверный выбор. Пожалуйста, введите число от 1 до 6.")
+            print("Неверный выбор. Пожалуйста, введите число от 1 до 8.")
 
 if __name__ == "__main__":
 
