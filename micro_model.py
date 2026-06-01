@@ -13,10 +13,13 @@ from prompts import PROMPT_MICROMODEL
 # ---------------------------------------------------------------------------
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-OPENROUTER_MODEL = "OPENROUTER_MODEL"
+OPENROUTER_MODEL = os.getenv("DEFAULT_GENERATION_MODEL_MICRO")
 
 if not OPENROUTER_API_KEY:
     raise RuntimeError("Переменная окружения OPENROUTER_API_KEY не установлена")
+
+if not OPENROUTER_MODEL:
+    raise RuntimeError("Переменная окружения DEFAULT_GENERATION_MODEL_MICRO не установлена")
 
 client = openai.OpenAI(
     base_url=OPENROUTER_BASE_URL,

@@ -13,6 +13,7 @@ from index_manager import ensure_indexes
 from repositories.hierarchy_recursive import get_hierarchy_for_root_recursive, get_hierarchy_by_macro_id_recursive
 from knowledge_base import load_knowledge_base
 from micro_model import generate_micro_model
+from verification_micro import verify_micro_model
 from macro_model import generate_macro_model
 
 def get_or_create_relclass(name, description):
@@ -163,11 +164,34 @@ def menu():
             macro, micro = generate_micro_model()
             print("\nМикроуровневая модель корневой проблемы сгенерирована:")
             print(json.dumps(micro, ensure_ascii=False, indent=2))
-            new_id = subproblems_repo.add_subproblem(parent_id=None, macro_model=macro, micro_model=micro)
-            print(f"Корневая проблема сохранена в БД с id = {new_id}")
-            # Дальше используем new_id для привязки подпроблем
 
-            #macro, micro = generate_micro_model(macro_dict=generate_macro_model)
+            # Верификация
+            result = verify_micro_model(
+                macro_model=macro,
+                initial_micro=micro,
+                generation_prompt=None,  # будет построен автоматически
+                use_rag=True,
+                num_samples=5,
+                temperature=0.7,
+                confidence_threshold=0.7
+            )
+
+            final_micro = result["final_micro"]
+            confidence = result["confidence"]
+            acceptable = result["acceptable"]
+
+            print(f"Итоговая уверенность: {confidence:.2f}")
+            print(f"Модель {final_micro} {'пригодна' if acceptable else 'требует доработки'}")
+
+            if acceptable:
+                new_id = subproblems_repo.add_subproblem(parent_id=None, macro_model=macro, micro_model=micro)
+                print(f"Корневая проблема сохранена в БД с id = {new_id}")
+                # Дальше используем new_id для привязки подпроблем
+
+                #macro, micro = generate_micro_model(macro_dict=generate_macro_model)
+            else:
+                # Действия при низкой уверенности: можно сохранить с пометкой или запросить ручное вмешательство
+                raise RuntimeError("Сгенерированная микро‑модель не прошла верификацию.")
         elif choice == '8':
             print("Выход из программы.")
             break
