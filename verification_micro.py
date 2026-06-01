@@ -10,7 +10,7 @@ from micro_model import (
     parse_micro_model as parse_json,
     OPENROUTER_MODEL as DEFAULT_GENERATION_MODEL,
 )
-from prompts import PROMPT_JUDGE_VARIANTS, PROMPT_RAG_CONFIDENCE
+from prompts import PROMPT_JUDGE_VARIANTS_MICROMODEL, PROMPT_RAG_CONFIDENCE_MICROMODEL
 
 load_dotenv()
 
@@ -69,7 +69,7 @@ def rag_confidence(macro_model: dict, micro_model: dict, top_k: int = 3) -> Tupl
 
     documents_text = "\n\n".join(docs)
     micro_json_str = json.dumps(micro_model, ensure_ascii=False, indent=2)
-    prompt = PROMPT_RAG_CONFIDENCE.format(
+    prompt = PROMPT_RAG_CONFIDENCE_MICROMODEL.format(
         documents_text=documents_text,
         micro_model_json=micro_json_str
     )
@@ -90,7 +90,7 @@ def judge_variants(macro_model: dict, variants: List[dict]) -> Tuple[dict, float
     for i, var in enumerate(variants):
         variants_text += f"Вариант {i+1}:\n{json.dumps(var, ensure_ascii=False, indent=2)}\n\n"
 
-    prompt = PROMPT_JUDGE_VARIANTS.format(
+    prompt = PROMPT_JUDGE_VARIANTS_MICROMODEL.format(
         macro_model_json=macro_json_str,
         variants_text=variants_text
     )

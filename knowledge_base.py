@@ -20,13 +20,13 @@ def extract_text_from_pdf(filepath: str) -> str:
     Возвращает строку с содержимым всех страниц.
     """
     try:
-        import fitz  # PyMuPDF
+        import PyMuPDF as pymupdf
     except ImportError:
         raise ImportError(
             "Для работы с PDF установите PyMuPDF: pip install PyMuPDF"
         )
 
-    doc = fitz.open(filepath)
+    doc = pymupdf.open(filepath)
     text = ""
     for page in doc:
         text += page.get_text()
@@ -146,25 +146,3 @@ def load_knowledge_base():
     print(f"Загружено {len(all_chunks)} фрагментов из обработанных файлов")
 
 
-def search_knowledge(query: str, n_results: int = 3) -> str:
-    """
-    Ищет в базе знаний фрагменты, наиболее похожие на запрос пользователя.
-    Возвращает найденные фрагменты в виде текста.
-    """
-    if collection.count() == 0:
-        return ""
-
-    results = collection.query(
-        query_texts=[query],
-        n_results=n_results
-    )
-
-    if not results["documents"] or not results["documents"][0]:
-        return ""
-
-    found_texts = []
-    for i, doc in enumerate(results["documents"][0]):
-        source = results["metadatas"][0][i].get("source", "неизвестно")
-        found_texts.append(f"[Источник: {source}]\n{doc}")
-
-    return "\n\n---\n\n".join(found_texts)

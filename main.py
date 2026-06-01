@@ -170,7 +170,7 @@ def menu():
                 macro_model=macro,
                 initial_micro=micro,
                 generation_prompt=None,  # будет построен автоматически
-                use_rag=True,
+                use_rag=True,            # будет автоматически использовать retriever, если он доступен
                 num_samples=5,
                 temperature=0.7,
                 confidence_threshold=0.7
