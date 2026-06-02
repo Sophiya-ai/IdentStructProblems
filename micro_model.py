@@ -13,7 +13,7 @@ from prompts import PROMPT_MICROMODEL
 # ---------------------------------------------------------------------------
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-OPENROUTER_MODEL = os.getenv("DEFAULT_GENERATION_MODEL_MICRO")
+OPENROUTER_MODEL = os.getenv("DEFAULT_GENERATION_MODEL")
 
 if not OPENROUTER_API_KEY:
     raise RuntimeError("Переменная окружения OPENROUTER_API_KEY не установлена")
@@ -34,11 +34,8 @@ DEFAULT_MACRO_FILE = "macro_model.json"
 def load_macro_model_from_console() -> dict:
     """Интерактивный ввод полей макро‑модели с консоли."""
     print("Введите макроуровневую модель проблемы.")
-    model = {}
-    model['id']  = input("id (идентификатор проблемы): ")
-    model['sit'] = input("sit (описание проблемной ситуации): ")
-    model['sbj'] = input("sbj (субъект): ")
-    model['est'] = input("est (негативная оценка ситуации): ")
+    model = {'id': input("id (идентификатор проблемы): "), 'sit': input("sit (описание проблемной ситуации): "),
+             'sbj': input("sbj (субъект): "), 'est': input("est (негативная оценка ситуации): ")}
     return model
 
 def load_macro_model_from_file(file_path: str = DEFAULT_MACRO_FILE) -> dict:

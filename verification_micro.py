@@ -21,11 +21,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Конфигурация модели-судьи (обязательна в .env)
+# Конфигурация модели-судьи (в .env)
 # ---------------------------------------------------------------------------
-DEFAULT_JUDGE_MODEL = os.getenv("DEFAULT_JUDGE_MODEL_MICRO")
+DEFAULT_JUDGE_MODEL = os.getenv("DEFAULT_JUDGE_MODEL")
 if not DEFAULT_JUDGE_MODEL:
-    raise RuntimeError("Переменная окружения DEFAULT_JUDGE_MODEL_MICRO не установлена")
+    raise RuntimeError("Переменная окружения DEFAULT_JUDGE_MODEL не установлена")
 
 # ---------------------------------------------------------------------------
 # Вспомогательные функции
