@@ -30,9 +30,9 @@ def add_subproblem(
                     parent_id,
                     json.dumps(macro_model),
                     json.dumps(micro_model),
-                    confidence_macro,          # уже строка или None
+                    confidence_macro,          # строка или None
                     reasoning_macro,
-                    confidence_micro,          # уже строка или None
+                    confidence_micro,          # строка или None
                     reasoning_micro,
                 )
             )
