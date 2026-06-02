@@ -73,15 +73,19 @@ def build_prompt(macro_model: dict) -> str:
     return PROMPT_MICROMODEL.format(macro_m_prb_json=macro_json_str)
 
 # ---------------------------------------------------------------------------
-# Вызов LLM через OpenRouter
+# Вызов LLM через OpenRouter - все существующие вызовы call_openrouter без указания температуры работают с temperature=0.7
 # ---------------------------------------------------------------------------
-def call_openrouter(prompt: str, model: str = OPENROUTER_MODEL) -> str:
+def call_openrouter(
+    prompt: str,
+    model: str = OPENROUTER_MODEL,
+    temperature: float = 0.7
+) -> str:
     """Отправляет промпт в OpenRouter и возвращает текст ответа."""
     try:
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
+            temperature=temperature,   # используем переданное значение
             max_tokens=4096,
         )
         return response.choices[0].message.content
