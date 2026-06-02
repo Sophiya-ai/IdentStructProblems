@@ -7,13 +7,13 @@ import json
 from db import close_all, get_connection, put_connection
 from repositories import subproblems_repo, relclass_repo, relname_repo, problem_rels_repo, hierarchy_repo
 from display_hierarchy import show as display_hierarchy
-from repositories.subproblems_repo import get_root_problems
+from repositories.subproblems_repo import get_root_problems, load_problems_lowconfident
 from repositories.hierarchy_by_root import get_hierarchy_for_root, get_hierarchy_by_macro_id
 from index_manager import ensure_indexes
 from repositories.hierarchy_recursive import get_hierarchy_for_root_recursive, get_hierarchy_by_macro_id_recursive
 from knowledge_base import load_knowledge_base
 from micro_model import generate_micro_model
-from verification_micro import verify_micro_model
+from verification_universal import verify_micro_model
 from macro_model import generate_macro_model
 
 def get_or_create_relclass(name, description):
@@ -144,7 +144,8 @@ def menu():
         print("5. Показать иерархию по макромодельному id (рекурсивный CTE)")
         print("6. Загрузить файлы в векторную  БД")
         print("7. Идентификация проблемы")
-        print("8. Выход")
+        print("8. Просмотр проблем с низкой уверенностью.")
+        print("9. Выход")
         choice = input("Выберите пункт меню: ").strip()
 
         if choice == '1':
@@ -165,12 +166,11 @@ def menu():
             print("\nМикроуровневая модель корневой проблемы сгенерирована:")
             print(json.dumps(micro, ensure_ascii=False, indent=2))
 
-            # Верификация
+            # Верификация – сигнатура полностью совместима с предыдущей версией
             result = verify_micro_model(
                 macro_model=macro,
                 initial_micro=micro,
-                generation_prompt=None,  # будет построен автоматически
-                use_rag=True,            # будет автоматически использовать retriever, если он доступен
+                use_rag=True,  # автоматически задействует retriever, если доступен
                 num_samples=5,
                 temperature=0.7,
                 confidence_threshold=0.7
@@ -179,20 +179,26 @@ def menu():
             final_micro = result["final_micro"]
             confidence = result["confidence"]
             acceptable = result["acceptable"]
+            reasoning = result["reasoning"]
+
+            # Определяем уровень уверенности для сохранения
+            micro_confidence = None if acceptable else "low"
 
             print(f"Итоговая уверенность: {confidence:.2f}")
-            print(f"Модель {final_micro} {'пригодна' if acceptable else 'требует доработки'}")
+            print(f"Микроуровневая модель корневой проблемы {'пригодна' if acceptable else 'требует доработки'}")
 
-            if acceptable:
-                new_id = subproblems_repo.add_subproblem(parent_id=None, macro_model=macro, micro_model=micro)
-                print(f"Корневая проблема сохранена в БД с id = {new_id}")
-                # Дальше используем new_id для привязки подпроблем
-
-                #macro, micro = generate_micro_model(macro_dict=generate_macro_model)
-            else:
-                # Действия при низкой уверенности: можно сохранить с пометкой или запросить ручное вмешательство
-                raise RuntimeError("Сгенерированная микро‑модель не прошла верификацию.")
+            if acceptable or True:  # даже если не прошла, можем сохранить с пометкой 'low'
+                new_id = subproblems_repo.add_subproblem(
+                    parent_id=None,
+                    macro_model=macro,
+                    micro_model=final_micro,
+                    confidence_micro=micro_confidence,  # 'low' или None
+                    reasoning_micro=reasoning
+                )
+                print(f"Корневая проблема сохранена с id = {new_id}")
         elif choice == '8':
+            load_problems_lowconfident()
+        elif choice == '9':
             print("Выход из программы.")
             break
         else:
