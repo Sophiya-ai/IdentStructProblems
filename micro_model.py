@@ -1,30 +1,13 @@
 import json
 import os
-import sys
 from pathlib import Path
-from typing import Optional, Tuple
-
-import openai
-
+from typing import Optional
 from prompts import PROMPT_MICROMODEL
+from call_llm import call_openrouter
 
-# ---------------------------------------------------------------------------
-# Конфигурация OpenRouter
-# ---------------------------------------------------------------------------
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
 OPENROUTER_MODEL = os.getenv("DEFAULT_GENERATION_MODEL")
 
-if not OPENROUTER_API_KEY:
-    raise RuntimeError("Переменная окружения OPENROUTER_API_KEY не установлена")
-
-if not OPENROUTER_MODEL:
-    raise RuntimeError("Переменная окружения DEFAULT_GENERATION_MODEL_MICRO не установлена")
-
-client = openai.OpenAI(
-    base_url=OPENROUTER_BASE_URL,
-    api_key=OPENROUTER_API_KEY,
-)
 
 # ---------------------------------------------------------------------------
 # Загрузка макро‑модели
@@ -68,7 +51,7 @@ def build_prompt(macro_model: dict) -> str:
     """Подставляет макро‑модель в шаблон PROMPT_MICROMODEL."""
     macro_json_str = json.dumps(macro_model, ensure_ascii=False)
     return PROMPT_MICROMODEL.format(macro_m_prb_json=macro_json_str)
-
+"""
 # ---------------------------------------------------------------------------
 # Вызов LLM через OpenRouter - все существующие вызовы call_openrouter без указания температуры работают с temperature=0.7
 # ---------------------------------------------------------------------------
@@ -77,7 +60,7 @@ def call_openrouter(
     model: str = OPENROUTER_MODEL,
     temperature: float = 0.7
 ) -> str:
-    """Отправляет промпт в OpenRouter и возвращает текст ответа."""
+    
     try:
         response = client.chat.completions.create(
             model=model,
@@ -88,7 +71,7 @@ def call_openrouter(
         return response.choices[0].message.content
     except Exception as e:
         raise RuntimeError(f"Ошибка при обращении к OpenRouter: {e}")
-
+"""
 # ---------------------------------------------------------------------------
 # Парсинг ответа LLM в микро‑модель
 # ---------------------------------------------------------------------------

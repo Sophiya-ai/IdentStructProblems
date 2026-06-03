@@ -6,10 +6,9 @@ from dotenv import load_dotenv
 
 from micro_model import (
     build_prompt as build_micro_prompt,        # формирование промпта для генерации микро‑модели
-    call_openrouter,
-    parse_micro_model as parse_json,
-    OPENROUTER_MODEL as DEFAULT_GENERATION_MODEL,
+    parse_micro_model as parse_json
 )
+from call_llm import call_openrouter
 from prompts import (
     PROMPT_JUDGE_VARIANTS_MICROMODEL,
     PROMPT_RAG_CONFIDENCE_MICROMODEL,
@@ -19,6 +18,8 @@ load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+DEFAULT_GENERATION_MODEL = os.getenv("DEFAULT_GENERATION_MODEL")
 
 # Модель-судья из .env
 DEFAULT_JUDGE_MODEL = os.getenv("DEFAULT_JUDGE_MODEL")
@@ -30,7 +31,9 @@ if not DEFAULT_JUDGE_MODEL:
 # ---------------------------------------------------------------------------
 
 def validate_micro_structure(micro: dict) -> bool:
+
     """Проверяет обязательные поля и их типы для микро‑модели."""
+
     required = ["sitm", "sbjm", "STHM", "pfmt", "metm"]
     for key in required:
         if key not in micro:
@@ -50,7 +53,9 @@ def validate_macro_structure(macro: dict) -> bool:
 """
 
 def get_retriever():
+
     """Возвращает объект retriever'а или None."""
+
     try:
         from retrieval import get_retriever as _get_retriever
         return _get_retriever()
@@ -64,12 +69,14 @@ def rag_confidence(
     top_k: int = 3,
     rag_prompt_template: str = PROMPT_RAG_CONFIDENCE_MICROMODEL
 ) -> Tuple[float, str]:
+
     """
     Оценивает соответствие модели документам из базы знаний.
-    macro_context – словарь, который содержит информацию для поиска
+    - macro_context – словарь, который содержит информацию для поиска
     (обычно поля 'sit', 'sbj', 'est').
-    model – сериализуемая модель (микро или макро).
+    - model – сериализуемая модель (микро или макро).
     """
+
     retriever = get_retriever()
     if retriever is None:
         return 1.0, "RAG недоступен"
@@ -102,10 +109,7 @@ def judge_variants(
     variants: List[dict],
     judge_prompt_template: str = PROMPT_JUDGE_VARIANTS_MICROMODEL
 ) -> Tuple[dict, float, str]:
-    """
-    Отправляет варианты модели‑судье, получает итоговую модель.
-    macro_model – исходная макро‑модель (или другой контекст).
-    """
+
     macro_json_str = json.dumps(macro_model, ensure_ascii=False, indent=2)
     variants_text = ""
     for i, var in enumerate(variants):
@@ -220,7 +224,7 @@ def verify_model(
         judge_conf *= 0.8
         reasoning += "\nВнимание: модель имеет структурные нарушения."
 
-    # 4. RAG‑верификация (опционально)
+    # 4. RAG‑верификация (если возможна)
     rag_conf = None
     if use_rag:
         rag_conf, rag_reason = rag_confidence(
