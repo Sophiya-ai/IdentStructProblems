@@ -6,19 +6,14 @@
 import json
 from db import close_all, get_connection, put_connection
 from repositories import subproblems_repo, relclass_repo, relname_repo, problem_rels_repo
-from repositories.subproblems_repo import load_problems_lowconfident
 from repositories.show_data_DB import (
-    full_hierarchy,
-    list_roots,
-    show_hierarchy_by_db_id,
-    show_hierarchy_by_macro_id,
-    show_hierarchy_recursive_by_db_id,
-    show_hierarchy_recursive_by_macro_id)
+    full_hierarchy,list_roots,show_hierarchy_by_db_id,show_hierarchy_by_macro_id,
+    show_hierarchy_recursive_by_db_id,show_hierarchy_recursive_by_macro_id, load_problems_lowconfident)
 from index_manager import ensure_indexes
 from knowledge_base import load_knowledge_base
 from micro_model import generate_micro_model
 from verification_universal import verify_micro_model
-from macro_model import generate_macro_model
+#from macro_model import generate_macro_model
 
 # ---------------------------------------------------------------------------
 # Тестовое наполнение БД, чтобы проверить ввод-вывод данных из нее
@@ -105,7 +100,7 @@ def menu():
             print("\nМикроуровневая модель корневой проблемы сгенерирована:")
             print(json.dumps(micro, ensure_ascii=False, indent=2))
 
-            # Верификация – сигнатура полностью совместима с предыдущей версией
+            # Верификация
             result = verify_micro_model(
                 macro_model=macro,
                 initial_micro=micro,
@@ -120,13 +115,13 @@ def menu():
             acceptable = result["acceptable"]
             reasoning = result["reasoning"]
 
-            # Определяем уровень уверенности для сохранения
-            micro_confidence = None if acceptable else "low"
-
             print(f"Итоговая уверенность: {confidence:.2f}")
             print(f"Микроуровневая модель корневой проблемы {'пригодна' if acceptable else 'требует доработки'}")
 
-            if acceptable or True:  # даже если не прошла, можем сохранить с пометкой 'low'
+            # Определяем уровень уверенности для сохранения
+            micro_confidence = None if acceptable else "low"
+
+            if acceptable or True:  # даже если не прошла, сохраняем с пометкой 'low'
                 new_id = subproblems_repo.add_subproblem(
                     parent_id=None,
                     macro_model=macro,
@@ -145,7 +140,7 @@ def menu():
 
 
 if __name__ == "__main__":
-    # гарантирует наличие всех нужных индексов
+    # создаем индексы, если отсутствуют
     ensure_indexes()
 
     # Сначала можно заполнить БД (если нужно)

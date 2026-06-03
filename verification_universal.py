@@ -122,7 +122,7 @@ def judge_variants(
 
     raw = call_openrouter(prompt, model=DEFAULT_JUDGE_MODEL)
     result = parse_json(raw)
-    final_model = result.get("final_micro", variants[0])   # имя поля 'final_micro' – можно сделать универсальным
+    final_model = result.get("final_model", variants[0])
     confidence = result.get("confidence", 0.5)
     reasoning = result.get("reasoning", "")
     return final_model, confidence, reasoning
