@@ -11,7 +11,7 @@ from micro_model import (
 from call_llm import call_openrouter
 from prompts import (
     PROMPT_JUDGE_VARIANTS_MICROMODEL,
-    PROMPT_RAG_CONFIDENCE_MICROMODEL,
+    PROMPT_RAG_CONFIDENCE,
 )
 
 load_dotenv()
@@ -67,7 +67,7 @@ def rag_confidence(
     macro_context: dict,          # контекст (макро‑модель) для формирования запроса
     model: dict,                  # проверяемая модель (микро или макро)
     top_k: int = 3,
-    rag_prompt_template: str = PROMPT_RAG_CONFIDENCE_MICROMODEL
+    rag_prompt_template: str = PROMPT_RAG_CONFIDENCE
 ) -> Tuple[float, str]:
 
     """
@@ -91,7 +91,7 @@ def rag_confidence(
 
     prompt = rag_prompt_template.format(
         documents_text=documents_text,
-        micro_model_json=model_json_str    # имя параметра может быть универсальным: model_json
+        model_json=model_json_str
     )
 
     raw = call_openrouter(prompt, model=DEFAULT_JUDGE_MODEL)
@@ -144,7 +144,7 @@ def verify_model(
     judge_prompt_template: str = PROMPT_JUDGE_VARIANTS_MICROMODEL,
     # Параметры RAG
     use_rag: bool = True,
-    rag_prompt_template: str = PROMPT_RAG_CONFIDENCE_MICROMODEL,
+    rag_prompt_template: str = PROMPT_RAG_CONFIDENCE,
     # Общие настройки
     num_samples: int = 5,
     temperature: float = 0.7,
@@ -270,7 +270,7 @@ def verify_micro_model(
         judge_prompt_template=PROMPT_JUDGE_VARIANTS_MICROMODEL,
         generation_model=generation_model,
         use_rag=use_rag,
-        rag_prompt_template=PROMPT_RAG_CONFIDENCE_MICROMODEL,
+        rag_prompt_template=PROMPT_RAG_CONFIDENCE,
         num_samples=num_samples,
         temperature=temperature,
         confidence_threshold=confidence_threshold
