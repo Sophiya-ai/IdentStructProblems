@@ -127,7 +127,7 @@ def get_retriever():
 def rag_confidence(
     macro_context: dict,          # контекст (макро‑модель) для формирования запроса
     model: dict,                  # проверяемая модель (микро или макро)
-    top_k: int = 3,
+    top_k: int = 6,
     rag_prompt_template: str = PROMPT_RAG_CONFIDENCE
 ) -> Tuple[float, str]:
     """
@@ -140,7 +140,7 @@ def rag_confidence(
     if retriever is None:
         return 1.0, "RAG недоступен"
 
-    query = f"Проблема: {macro_context.get('sit', '')}\nСубъект: {macro_context.get('sbj', '')}\nОценка: {macro_context.get('est', '')}"
+    query = f"Проблема: {macro_context.get('id', '')}\nСитуация: {macro_context.get('sit', '')}\nСубъект: {macro_context.get('sbj', '')}\nОценка: {macro_context.get('est', '')}"
     docs = retriever.retrieve(query, top_k)
     if not docs:
         return 0.5, "Нет релевантных документов"
