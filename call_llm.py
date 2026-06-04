@@ -29,7 +29,6 @@ def call_openrouter(
     model: str = OPENROUTER_MODEL,
     temperature: float = 0.7
 ) -> str:
-    """Отправляет промпт в OpenRouter и возвращает текст ответа."""
     try:
         response = client.chat.completions.create(
             model=model,

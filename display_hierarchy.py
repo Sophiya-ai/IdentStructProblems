@@ -1,6 +1,7 @@
 """
 Модуль для отображения иерархии проблем в консоли и сохранения в JSON.
 """
+
 import json
 from typing import List, Dict
 

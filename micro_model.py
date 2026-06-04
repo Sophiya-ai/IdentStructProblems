@@ -15,14 +15,14 @@ OPENROUTER_MODEL = os.getenv("DEFAULT_GENERATION_MODEL")
 DEFAULT_MACRO_FILE = "macro_model.json"
 
 def load_macro_model_from_console() -> dict:
-    """Интерактивный ввод полей макро‑модели с консоли."""
+    """Интерактивный ввод полей макромодели с консоли"""
     print("Введите макроуровневую модель проблемы.")
     model = {'id': input("id (идентификатор проблемы): "), 'sit': input("sit (описание проблемной ситуации): "),
              'sbj': input("sbj (субъект): "), 'est': input("est (негативная оценка ситуации): ")}
     return model
 
 def load_macro_model_from_file(file_path: str = DEFAULT_MACRO_FILE) -> dict:
-    """Чтение макро‑модели из JSON‑файла."""
+    """Чтение макромодели из JSON‑файла."""
     with open(file_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
@@ -31,7 +31,7 @@ def get_macro_model(
     file_path: str = DEFAULT_MACRO_FILE
 ) -> dict:
     """
-    Возвращает макро‑модель, выбирая источник по приоритету:
+    Возвращает макромодель, выбирая источник по приоритету:
     1. Переданный словарь macro_dict (если не None).
     2. Локальный JSON‑файл, если существует.
     3. Интерактивный ввод с консоли.
@@ -45,38 +45,17 @@ def get_macro_model(
     return load_macro_model_from_console()
 
 # ---------------------------------------------------------------------------
-# Генерация промпта
+# Генерация промпта - подставляет макромодель в шаблон PROMPT_MICROMODEL
 # ---------------------------------------------------------------------------
 def build_prompt(macro_model: dict) -> str:
-    """Подставляет макро‑модель в шаблон PROMPT_MICROMODEL."""
     macro_json_str = json.dumps(macro_model, ensure_ascii=False)
     return PROMPT_MICROMODEL.format(macro_m_prb_json=macro_json_str)
-"""
+
 # ---------------------------------------------------------------------------
-# Вызов LLM через OpenRouter - все существующие вызовы call_openrouter без указания температуры работают с temperature=0.7
-# ---------------------------------------------------------------------------
-def call_openrouter(
-    prompt: str,
-    model: str = OPENROUTER_MODEL,
-    temperature: float = 0.7
-) -> str:
-    
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=temperature,   # используем переданное значение
-            max_tokens=4096,
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        raise RuntimeError(f"Ошибка при обращении к OpenRouter: {e}")
-"""
-# ---------------------------------------------------------------------------
-# Парсинг ответа LLM в микро‑модель
+# Парсинг ответа БЯМ в микромодель - извлекает JSON из ответа БЯМ и возвращает как словарь
 # ---------------------------------------------------------------------------
 def parse_micro_model(llm_response: str) -> dict:
-    """Извлекает JSON из ответа LLM и возвращает как словарь."""
+    """."""
     # Иногда LLM может обернуть JSON в ```json ... ```, убираем
     cleaned = llm_response.strip()
     if cleaned.startswith("```json"):
@@ -95,7 +74,7 @@ def parse_micro_model(llm_response: str) -> dict:
     return micro
 
 # ---------------------------------------------------------------------------
-# Основная функция генерации микро‑модели
+# Основная функция генерации микромодели
 # ---------------------------------------------------------------------------
 def generate_micro_model(
     macro_dict: Optional[dict] = None,
@@ -103,7 +82,7 @@ def generate_micro_model(
 ) -> tuple[dict, dict]:
     """
     Полный цикл:
-    - Загрузка макро‑модели (из словаря, файла или консоли)
+    - Загрузка макромодели (из словаря, файла или консоли)
     - Построение промпта
     - Запрос к OpenRouter
     - Парсинг и возврат микро‑модели

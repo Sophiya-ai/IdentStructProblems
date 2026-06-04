@@ -10,9 +10,11 @@ from micro_model import (
 )
 from call_llm import call_openrouter
 from prompts import (
-    PROMPT_JUDGE_VARIANTS_MICROMODEL,
+    PROMPT_JUDGE_VARIANTS,
     PROMPT_RAG_CONFIDENCE,
+    PROMPT_SEMANTIC_VALIDATION
 )
+from validation_criteria import MICRO_VALIDATION_CRITERIA, MACRO_VALIDATION_CRITERIA
 
 load_dotenv()
 
@@ -27,13 +29,42 @@ if not DEFAULT_JUDGE_MODEL:
     raise RuntimeError("Переменная окружения DEFAULT_JUDGE_MODEL не установлена")
 
 # ---------------------------------------------------------------------------
-# Вспомогательные функции (не зависят от типа модели)
+# Вспомогательные функции
 # ---------------------------------------------------------------------------
+def semantic_validate_model(
+    context: dict,                    # контекст, в рамках которого модель создана (макромодель, описание подпроблемы и т.п.)
+    model: dict,                      # проверяемая модель (микро, макро и др.)
+    model_type: str,                  # название типа модели для промпта, например "микроуровневая модель"
+    validation_criteria: str,         # текстовое описание критериев проверки (структура, осмысленность и т.д.)
+    judge_model: str = DEFAULT_JUDGE_MODEL,
+    accept_threshold: float = 0.6
+) -> Tuple[bool, float, str]:
+    """
+    УНИВЕРСАЛЬНАЯ СЕМАНТИЧЕСКАЯ ПРОВЕРКА: Проверяет модель на соответствие контексту по заданным критериям.
+    Возвращает: (passed: bool, score: float, reasoning: str).
+    """
+    context_json_str = json.dumps(context, ensure_ascii=False, indent=2)
+    model_json_str = json.dumps(model, ensure_ascii=False, indent=2)
 
+    prompt = PROMPT_SEMANTIC_VALIDATION.format(
+        model_type=model_type,
+        context_json=context_json_str,
+        model_json=model_json_str,
+        validation_criteria=validation_criteria
+    )
+
+    raw = call_openrouter(prompt, model=judge_model, temperature=0.4)
+    result = parse_json(raw)
+
+    score = float(result.get("score", 0.0))
+    accept = bool(result.get("accept", False))
+    reasoning = result.get("reasoning", "")
+
+    passed = accept and score >= accept_threshold
+    return passed, score, reasoning
+
+# Проверка обязательных полей и их типов для микромодели
 def validate_micro_structure(micro: dict) -> bool:
-
-    """Проверяет обязательные поля и их типы для микро‑модели."""
-
     required = ["sitm", "sbjm", "STHM", "pfmt", "metm"]
     for key in required:
         if key not in micro:
@@ -46,16 +77,46 @@ def validate_micro_structure(micro: dict) -> bool:
         return False
     return True
 
+# Проверяет обязательные поля и их типы для макро‑модели
 """ в разработке
 def validate_macro_structure(macro: dict) -> bool:
     required = {"id", "sit", "sbj", "est"}
     return all(k in macro for k in required)
 """
 
+def create_combined_validator(
+    context: dict,                                # контекст для семантической проверки
+    structure_validator: Callable[[dict], bool],  # функция структурной валидации
+    model_type: str,                               # тип модели (для промпта)
+    validation_criteria: str,                      # описание критериев семантической проверки
+    enable_semantic: bool = True,
+    semantic_model: str = DEFAULT_JUDGE_MODEL,
+    semantic_threshold: float = 0.6
+) -> Callable[[dict], bool]:
+    """
+    УНИВЕРСАЛЬНЫЙ КОМБИНИРОВАННЫЙ ВАЛИДАТОР (СТРУКТУРА + СЕМАНТИКА).
+    Возвращает функцию-валидатор, которая сначала проверяет структуру,
+    затем (опционально) выполняет семантическую проверку через БЯМ.
+    Возвращает True, только если модель прошла все проверки.
+    """
+    def validator(model: dict) -> bool:
+        if not structure_validator(model):
+            return False
+        if not enable_semantic:
+            return True
+        passed, score, _ = semantic_validate_model(
+            context, model, model_type,
+            validation_criteria=validation_criteria,
+            judge_model=semantic_model,
+            accept_threshold=semantic_threshold
+        )
+        if not passed:
+            logger.info(f"Модель типа '{model_type}' отклонена семантической проверкой (score={score:.2f})")
+        return passed
+    return validator
+
+# Возвращает объект retriever'а или None
 def get_retriever():
-
-    """Возвращает объект retriever'а или None."""
-
     try:
         from retrieval import get_retriever as _get_retriever
         return _get_retriever()
@@ -69,14 +130,12 @@ def rag_confidence(
     top_k: int = 3,
     rag_prompt_template: str = PROMPT_RAG_CONFIDENCE
 ) -> Tuple[float, str]:
-
     """
     Оценивает соответствие модели документам из базы знаний.
     - macro_context – словарь, который содержит информацию для поиска
     (обычно поля 'sit', 'sbj', 'est').
     - model – сериализуемая модель (микро или макро).
     """
-
     retriever = get_retriever()
     if retriever is None:
         return 1.0, "RAG недоступен"
@@ -100,29 +159,12 @@ def rag_confidence(
     reason = result.get("reason", "")
     return score, reason
 
-# ---------------------------------------------------------------------------
-# Судья: синтез лучшей модели из вариантов
-# ---------------------------------------------------------------------------
 
-def judge_variants(
-    macro_model: dict,
-    variants: List[dict],
-    judge_prompt_template: str = PROMPT_JUDGE_VARIANTS_MICROMODEL
-) -> Tuple[dict, float, str]:
-
-    macro_json_str = json.dumps(macro_model, ensure_ascii=False, indent=2)
-    variants_text = ""
-    for i, var in enumerate(variants):
-        variants_text += f"Вариант {i+1}:\n{json.dumps(var, ensure_ascii=False, indent=2)}\n\n"
-
-    prompt = judge_prompt_template.format(
-        macro_model_json=macro_json_str,
-        variants_text=variants_text
-    )
-
-    raw = call_openrouter(prompt, model=DEFAULT_JUDGE_MODEL)
+# СУДЬЯ: синтез лучшей модели из вариантов - отправляет полный промпт судье и возвращает синтезированную модель
+def judge_variants(judge_prompt: str) -> Tuple[dict, float, str]:
+    raw = call_openrouter(judge_prompt, model=DEFAULT_JUDGE_MODEL)
     result = parse_json(raw)
-    final_model = result.get("final_model", variants[0])
+    final_model = result.get("final_model")
     confidence = result.get("confidence", 0.5)
     reasoning = result.get("reasoning", "")
     return final_model, confidence, reasoning
@@ -134,26 +176,20 @@ def verify_model(
     # Основные данные
     initial_model: dict,                      # исходная модель для верификации
     context_for_generation: dict,             # данные для генерации промпта (макро‑модель)
-    context_for_rag: Optional[dict] = None,   # данные для RAG‑запроса (если отличаются)
-    # Параметры генерации вариантов
     generation_prompt_builder: Callable[[dict], str] = None,  # функция(context) -> str
-    generation_model: str = DEFAULT_GENERATION_MODEL,
-    # Параметры валидатора структуры
     structure_validator: Callable[[dict], bool] = lambda x: True,
-    # Параметры судьи
-    judge_prompt_template: str = PROMPT_JUDGE_VARIANTS_MICROMODEL,
-    # Параметры RAG
+    judge_prompt_builder: Optional[Callable[[dict, List[dict]], str]] = None,
+    generation_model: str = DEFAULT_GENERATION_MODEL,
     use_rag: bool = True,
     rag_prompt_template: str = PROMPT_RAG_CONFIDENCE,
-    # Общие настройки
     num_samples: int = 5,
     temperature: float = 0.7,
-    confidence_threshold: float = 0.7
+    confidence_threshold: float = 0.7,
+    context_for_rag: Optional[dict] = None,   # данные для RAG‑запроса (если отличаются)
 ) -> Dict[str, Any]:
     """
     Универсальная верификация модели (микро, макро и др.)
-    методом множественной генерации + LLM‑судья + RAG.
-
+    методом множественной генерации + БЯМ‑судья + RAG.
     Возвращает словарь:
         final_model, confidence, acceptable,
         judge_confidence, rag_confidence, reasoning.
@@ -193,7 +229,7 @@ def verify_model(
                 logger.warning(
                     f"Вариант {i+1} из попытки #{attempt} не прошёл валидацию, пропущен."
                 )
-        if len(variants) < 2:
+        if len(variants) < 3:
             current_temp += 0.1
             current_extra_samples = max(3, current_extra_samples + 1)
             logger.info(
@@ -202,7 +238,7 @@ def verify_model(
                 f"увеличиваем число генераций до {current_extra_samples}."
             )
 
-    if len(variants) < 2:
+    if len(variants) < 3:
         raise RuntimeError(
             f"Ошибка синтеза: недостаточно валидных вариантов\n"
             f"  Получено: {len(variants)}\n"
@@ -214,15 +250,14 @@ def verify_model(
     logger.info(f"Накоплено {len(variants)} валидных вариантов. Запуск судьи...")
 
     # 2. Синтез итоговой модели судьёй
-    final_model, judge_conf, reasoning = judge_variants(
-        context_for_generation, variants, judge_prompt_template
-    )
+    judge_prompt = judge_prompt_builder(context_for_generation, variants)
+    final_model, judge_conf, reasoning = judge_variants(judge_prompt)
 
-    # 3. Структурная валидация итога
+    # 3. Структурная + семантическая (опционально) валидация итога
     if not structure_validator(final_model):
         logger.warning("Итоговая модель имеет структурные нарушения, уверенность снижена.")
         judge_conf *= 0.8
-        reasoning += "\nВнимание: модель имеет структурные нарушения."
+        reasoning += "\nВнимание: модель имеет структурные/семантические нарушения."
 
     # 4. RAG‑верификация (если возможна)
     rag_conf = None
@@ -245,9 +280,40 @@ def verify_model(
         "reasoning": reasoning
     }
 
+# Функция формирования промпта судьи для микромоделей (использует универсальный промпт)
+def _build_judge_prompt_for_micro(context: dict, variants: List[dict]) -> str:
+    context_description = json.dumps({
+        "задача": "Построить микроуровневую модель проблемы по заданной макромодели",
+        "макромодель": context,
+        "требования_к_микромодели": MICRO_VALIDATION_CRITERIA
+    }, ensure_ascii=False, indent=2)
+    variants_text = "\n\n".join(
+        f"Вариант {i+1}:\n{json.dumps(v, ensure_ascii=False, indent=2)}"
+        for i, v in enumerate(variants)
+    )
+    return PROMPT_JUDGE_VARIANTS.format(
+        model_type="микроуровневая модель проблемы",
+        context_description=context_description,
+        variants_text=variants_text
+    )
+
+""" в разработке
+def _build_judge_prompt_for_macro(context: dict, variants: List[dict]) -> str:
+    context_description = json.dumps({
+        "задача": "Построить макроуровневое описание подпроблемы",
+        "описание_подпроблемы": context,
+        "требования": MACRO_VALIDATION_CRITERIA
+    }, ensure_ascii=False, indent=2)
+    variants_text = "\n\n".join(...)
+    return PROMPT_JUDGE_VARIANTS_UNIVERSAL.format(
+        model_type="макроуровневая модель подпроблемы",
+        context_description=context_description,
+        variants_text=variants_text
+    )
+"""
 
 # ===================================================================
-# ОБЁРТКА ДЛЯ МИКРО‑МОДЕЛИ (обратная совместимость)
+# ОБЁРТКА ДЛЯ МИКРО‑МОДЕЛИ
 # ===================================================================
 def verify_micro_model(
     macro_model: dict,
@@ -256,18 +322,28 @@ def verify_micro_model(
     use_rag: bool = True,
     num_samples: int = 5,
     temperature: float = 0.7,
-    confidence_threshold: float = 0.7
+    confidence_threshold: float = 0.7,
+    enable_semantic_validation: bool = True,
+    semantic_accept_threshold: float = 0.6
 ) -> Dict[str, Any]:
-    """
-    Верификация микро‑модели (частный случай verify_model).
-    Сохранены прежние аргументы для совместимости.
-    """
+
+    # Верификация микромодели (частный случай verify_model)
+    combined_validator = create_combined_validator(
+        context=macro_model,
+        structure_validator=validate_micro_structure,
+        model_type="микроуровневая модель проблемы",
+        validation_criteria=MICRO_VALIDATION_CRITERIA,
+        enable_semantic=enable_semantic_validation,
+        semantic_model=DEFAULT_JUDGE_MODEL,
+        semantic_threshold=semantic_accept_threshold
+    )
+
     return verify_model(
         initial_model=initial_micro,
         context_for_generation=macro_model,
         generation_prompt_builder=build_micro_prompt,
-        structure_validator=validate_micro_structure,
-        judge_prompt_template=PROMPT_JUDGE_VARIANTS_MICROMODEL,
+        structure_validator=combined_validator,
+        judge_prompt_builder=_build_judge_prompt_for_micro,
         generation_model=generation_model,
         use_rag=use_rag,
         rag_prompt_template=PROMPT_RAG_CONFIDENCE,
@@ -276,16 +352,20 @@ def verify_micro_model(
         confidence_threshold=confidence_threshold
     )
 
-"""
-def verify_macro_model (
-
-)-> Dict[str, Any]:
-    return verify_model(
-    initial_model=initial_macro,
-    context_for_generation=subproblem_description,
-    generation_prompt_builder=build_macro_prompt,
-    structure_validator=validate_macro_structure,
-    judge_prompt_template=PROMPT_JUDGE_VARIANTS_MACROMODEL,  # нужно добавить в prompts.py
+""" В разработке
+def verify_macro_model(
+    context: dict,
+    initial_macro: dict,
+    generation_prompt_builder: Callable,
     ...
-)
+):
+    
+    combined_validator = create_combined_validator(
+        context=context,
+        structure_validator=validate_macro_structure,
+        model_type="макроуровневая модель подпроблемы",
+        validation_criteria=MACRO_VALIDATION_CRITERIA,
+        ...
+    )
+    return verify_model(...)
 """
