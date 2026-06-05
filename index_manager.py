@@ -28,18 +28,20 @@ INDEX_DEFINITIONS = {
     "idx_subproblems_micro_gin": (
         'CREATE INDEX IF NOT EXISTS idx_subproblems_micro_gin ON "subproblems" USING gin ("micro_model");'
     ),
-    "idx_subproblems_macro_sbj_gin": (
-        'CREATE INDEX idx_subproblems_macro_sbj_gin ON "subproblems" USING gin (("macro_model"->>\'sbj\') gin_trgm_ops);'
-    ),
-    "idx_subproblems_macro_sit_gin": (
-        'CREATE INDEX idx_subproblems_macro_sit_gin ON "subproblems" USING gin (("macro_model"->>\'sit\') gin_trgm_ops);'
-    ),
+    # "idx_subproblems_macro_sbj_gin": (
+    #     'CREATE INDEX idx_subproblems_macro_sbj_gin ON "subproblems" USING gin (("macro_model"->>\'sbj\') gin_trgm_ops);'
+    # ),
+    # "idx_subproblems_macro_sit_gin": (
+    #     'CREATE INDEX idx_subproblems_macro_sit_gin ON "subproblems" USING gin (("macro_model"->>\'sit\') gin_trgm_ops);'
+    # ),
+
     # Таблица relName - индекс для ускорения JOIN по внешнему ключу id_relClass
     # Полезен, если надо будет получить все типы отношений, принадлежащие определённому классу,
     # или в отчётах, где нужно группировать/фильтровать по классу отношений
     "idx_relName_id_relClass": (
         'CREATE INDEX IF NOT EXISTS idx_relName_id_relClass ON "relName" ("id_relClass");'
     ),
+
     # Таблица problem_relationships - индекс для поиска всех связей конкретной проблемы (subject_id или object_id)
     # и составной индекс для полного соответствия (subject, relationship, object)
     "idx_problem_rels_subject": (

@@ -266,9 +266,10 @@ def verify_model(
             context_for_rag, final_model, rag_prompt_template=rag_prompt_template
         )
         reasoning += f"\nRAG‑оценка: {rag_reason}"
+        logger.info(f"RAG‑оценка: {rag_conf} Причина: {rag_reason}")
 
     # 5. Комбинированная уверенность
-    overall_conf = (0.5 * judge_conf + 0.5 * rag_conf) if rag_conf is not None else judge_conf
+    overall_conf = (0.7 * judge_conf + 0.3 * rag_conf) if rag_conf is not None else judge_conf
     acceptable = overall_conf >= confidence_threshold
 
     return {

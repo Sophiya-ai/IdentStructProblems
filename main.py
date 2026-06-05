@@ -110,7 +110,7 @@ def menu():
                 confidence_threshold=0.7
             )
 
-            final_micro = result["final_micro"]
+            final_micro = result["final_model"]
             confidence = result["confidence"]
             acceptable = result["acceptable"]
             reasoning = result["reasoning"]
@@ -141,7 +141,7 @@ def menu():
 
 if __name__ == "__main__":
     # создаем индексы, если отсутствуют
-    ensure_indexes()
+    #ensure_indexes()
 
     # Сначала можно заполнить БД (если нужно)
     #fill_demo_data()
