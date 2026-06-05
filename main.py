@@ -4,14 +4,15 @@
 Рекурсивный CTE (пункты 4–5) извлекает только нужное поддерево, что гораздо эффективнее.
 """
 import json
+import re
 from db import close_all, get_connection, put_connection
 from repositories import subproblems_repo, relclass_repo, relname_repo, problem_rels_repo
 from repositories.show_data_DB import (
-    full_hierarchy,list_roots,show_hierarchy_by_db_id,show_hierarchy_by_macro_id,
+    full_hierarchy,list_roots,show_hierarchy_by_db_id,show_hierarchy_by_macro_id,similarity_problems,
     show_hierarchy_recursive_by_db_id,show_hierarchy_recursive_by_macro_id, load_problems_lowconfident)
 from index_manager import ensure_indexes
 from knowledge_base import load_knowledge_base
-from micro_model import generate_micro_model
+from micro_model import generate_micro_model, get_macro_model
 from verification_universal import verify_micro_model
 #from macro_model import generate_macro_model
 
@@ -79,7 +80,8 @@ def menu():
         print("6. Загрузить файлы в векторную  БД")
         print("7. Идентификация проблемы")
         print("8. Просмотр проблем с низкой уверенностью.")
-        print("9. Выход")
+        print("9. Проверка БД - была ли уже декомпозирована схожая проблема?")
+        print("10. Выход")
         choice = input("Выберите пункт меню: ").strip()
 
         if choice == '1':
@@ -131,8 +133,33 @@ def menu():
                 )
                 print(f"Корневая проблема сохранена с id = {new_id}")
         elif choice == '8':
-            load_problems_lowconfident()
+            print("\n=== Просмотр проблем с низкой уверенностью ===")
+            root_id_str = input("Введите db_id корневой проблемы (или Enter для просмотра всех, что есть в БД): ").strip()
+            if root_id_str:
+                try:
+                    root_db_id = int(root_id_str)
+                except ValueError:
+                    print("Ошибка: введите целое число.")
+                    continue
+            else:
+                root_db_id = None
+            load_problems_lowconfident(root_db_id)
         elif choice == '9':
+            print("\n=== Проверка похожих проблем через модель-судью ===")
+            macro = get_macro_model()
+            similarity_result = similarity_problems(macro)
+            similar = similarity_result["similar"]
+            confidence_new = similarity_result["confidence_new"]
+            print(f"\nУверенность, что проблема новая: {confidence_new:.2f}")
+            print(similarity_result["reasoning"])
+
+            if similar:
+                print("\nНайдены похожие проблемы в базе:")
+                for p in similar:
+                    print(f"  db_id={p['id']}, parent_id={p['parent_id']}, macro_id={p['macro_model'].get('id', '')}")
+                    sit = p['macro_model'].get('sit', '') if p['macro_model'] else ''
+                    print(f"    Описание: {sit[:100]}...")
+        elif choice == '10':
             print("Выход из программы.")
             break
         else:

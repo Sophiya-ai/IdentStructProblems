@@ -205,3 +205,31 @@ def get_root_problems() -> list[dict]:
         put_connection(conn)
 
 
+def get_all_problems_light() -> list[dict]:
+    """
+    Возвращает все проблемы: id, parent_id, macro_model (как dict).
+    Используется для поиска дубликатов.
+    """
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT "id", "parent_id", "macro_model"
+                FROM "subproblems"
+                ORDER BY "id";
+                """
+            )
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r[0],
+                    "parent_id": r[1],
+                    "macro_model": r[2]
+                }
+                for r in rows
+            ]
+    finally:
+        put_connection(conn)
+
+
