@@ -15,6 +15,7 @@ from prompts import (
     PROMPT_SEMANTIC_VALIDATION
 )
 from validation_criteria import MICRO_VALIDATION_CRITERIA, MACRO_VALIDATION_CRITERIA
+from perplexity import perplexity_confidence
 
 load_dotenv()
 
@@ -181,6 +182,7 @@ def verify_model(
     judge_prompt_builder: Optional[Callable[[dict, List[dict]], str]] = None,
     generation_model: str = DEFAULT_GENERATION_MODEL,
     use_rag: bool = True,
+    use_perplexity: bool = True,
     rag_prompt_template: str = PROMPT_RAG_CONFIDENCE,
     num_samples: int = 5,
     temperature: float = 0.7,
@@ -268,8 +270,40 @@ def verify_model(
         reasoning += f"\nRAG‑оценка: {rag_reason}"
         logger.info(f"RAG‑оценка: {rag_conf} Причина: {rag_reason}")
 
-    # 5. Комбинированная уверенность
-    overall_conf = (0.7 * judge_conf + 0.3 * rag_conf) if rag_conf is not None else judge_conf
+    # 5. Perplexity-based Confidence
+    ppl_conf = None
+    if use_perplexity:
+        # generation_prompt
+        # final_model – словарь, преобразуем в JSON-строку для вычисления PPL
+        response_text = json.dumps(final_model, ensure_ascii=False)
+        ppl_conf = perplexity_confidence(generation_prompt, response_text)
+        reasoning += f"\nУверенность на основе перплексии : {ppl_conf:.2f}"
+        logger.info(f"Уверенность на основе перплексии : {ppl_conf:.2f}")
+
+    # 6. Комбинированная уверенность
+    #    Веса: судья 0.6, RAG 0.2 (если есть), перплексия 0.2 (если есть)
+    #    Если какой-то компонент отсутствует, его вес перераспределяется пропорционально.
+    total_weight = 0.0
+    overall_conf = 0.0
+
+    if judge_conf is not None:
+        overall_conf += 0.6 * judge_conf
+        total_weight += 0.6
+
+    if rag_conf is not None:
+        overall_conf += 0.2 * rag_conf
+        total_weight += 0.2
+
+    if ppl_conf is not None:
+        overall_conf += 0.2 * ppl_conf
+        total_weight += 0.2
+
+    # Нормализуем на сумму присутствующих весов
+    if total_weight > 0:
+        overall_conf /= total_weight
+    else:
+        overall_conf = 0.5  # fallback - полная неопределённость
+
     acceptable = overall_conf >= confidence_threshold
 
     return {
@@ -278,6 +312,7 @@ def verify_model(
         "acceptable": acceptable,
         "judge_confidence": judge_conf,
         "rag_confidence": rag_conf,
+        "perplexity_confidence": ppl_conf,
         "reasoning": reasoning
     }
 
@@ -321,6 +356,7 @@ def verify_micro_model(
     initial_micro: dict,
     generation_model: str = DEFAULT_GENERATION_MODEL,
     use_rag: bool = True,
+    use_perplexity: bool = True,
     num_samples: int = 5,
     temperature: float = 0.7,
     confidence_threshold: float = 0.7,
@@ -347,6 +383,7 @@ def verify_micro_model(
         judge_prompt_builder=_build_judge_prompt_for_micro,
         generation_model=generation_model,
         use_rag=use_rag,
+        use_perplexity=use_perplexity,
         rag_prompt_template=PROMPT_RAG_CONFIDENCE,
         num_samples=num_samples,
         temperature=temperature,
