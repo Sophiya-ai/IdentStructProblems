@@ -4,10 +4,18 @@ import chromadb
 # Папка, где лежат текстовые и PDF-файлы с базой знаний
 KNOWLEDGE_DIR = "knowledge_files"
 
-# Инициализируем ChromaDB
+# Инициализируем ChromaDB - PersistentClient сохраняет базу данных на диск в папку ./chroma_db.
+# Это позволяет данным сохраняться между запусками программы
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
-# Создаём или открываем коллекцию
+
+"""
+Создаём или открываем коллекцию: "коллекция" в ChromaDB аналогична "таблице" в реляционных базах данных.
+metadata={"hnsw:space": "cosine"} - это важная настройка алгоритма поиска:
+- hnsw (Hierarchical Navigable Small World) — это алгоритм, который ChromaDB использует для быстрого приближённого поиска ближайших соседей;
+- cosine (косинусное сходство) измеряет угол между векторами. Для текстовых эмбеддингов это лучший выбор.
+ cosine оценивает смысловую близость, игнорируя длину текста (в отличие от евклидова расстояния).
+"""
 collection = chroma_client.get_or_create_collection(
     name="knowledge_base",
     metadata={"hnsw:space": "cosine"}
@@ -20,13 +28,13 @@ def extract_text_from_pdf(filepath: str) -> str:
     Возвращает строку с содержимым всех страниц.
     """
     try:
-        import PyMuPDF as pymupdf
+        import fitz    #PyMuPDF
     except ImportError:
         raise ImportError(
             "Для работы с PDF установите PyMuPDF: pip install PyMuPDF"
         )
 
-    doc = pymupdf.open(filepath)
+    doc = fitz.open(filepath)
     text = ""
     for page in doc:
         text += page.get_text()
@@ -34,33 +42,64 @@ def extract_text_from_pdf(filepath: str) -> str:
     return text
 
 
-def split_text_into_chunks(text: str, chunk_size: int = 500) -> list[str]:
+def split_text_into_chunks(
+        text: str,
+        chunk_size: int = 500,
+        chunk_overlap: int = 50
+) -> list[str]:
     """
-    Разбивает длинный текст на маленькие кусочки (чанки).
-    Это нужно, потому что модель лучше работает с небольшими
-    релевантными фрагментами, а не с огромным текстом целиком.
+    Разбиваем текст на смысловые фрагменты (чанки) с учётом токенов и перекрытий.
+    Аргументы:
+        - text (str): Исходный текст для разбиения.
+        - chunk_size (int): Максимальный размер одного чанка в токенах (по умолчанию 500).
+        - chunk_overlap (int): Количество перекрывающихся токенов между соседними чанками.
+                             Это нужно, чтобы не терять контекст на границах разбиения.
+    Возвращает:
+        list[str]: Список текстовых фрагментов, готовых для векторизации.
     """
-    paragraphs = text.split("\n\n")
-    chunks = []
-    current_chunk = ""
 
-    for paragraph in paragraphs:
-        paragraph = paragraph.strip()
-        if not paragraph:
-            continue
+    # 1. Проверяем наличие необходимых библиотек (ленивый импорт)
+    try:
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        import tiktoken
+    except ImportError:
+        raise ImportError(
+            "Для умного разбиения текста установите зависимости: "
+            "pip install langchain langchain-text-splitters tiktoken"
+        )
 
-        if len(current_chunk) + len(paragraph) + 2 <= chunk_size:
-            current_chunk = f"{current_chunk}\n\n{paragraph}".strip()
-        else:
-            if current_chunk:
-                chunks.append(current_chunk)
-            current_chunk = paragraph
+    # 2. Инициализируем токенайзер.
+    #    "cl100k_base" — это стандартный токенайзер для моделей GPT-3.5, GPT-4 и многих других.
+    #    Он корректно считает токены, что критически важно для соблюдения лимитов контекста LLM.
 
-    if current_chunk:
-        chunks.append(current_chunk)
+    tokenizer = tiktoken.get_encoding("cl100k_base")
 
-    return chunks
+    # 3. Создаём экземпляр рекурсивного разделителя текста
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,        # Целевой размер чанка в токенах
+        chunk_overlap=chunk_overlap,  # Перекрытие (overlap) для сохранения контекста
 
+        # Функция, которая говорит разделителю, как измерять длину текста (токены).
+        length_function=lambda x: len(tokenizer.encode(x)),
+
+        # Иерархия разделителей. Сплиттер будет пытаться разбить текст по порядку:
+        #      1. \n\n (между абзацами) - самый приоритетный, сохраняет смысловые блоки
+        #      2. \n (между строками)
+        #      3. " " (между словами)
+        #      4. "" (между символами) - используется только в крайнем случае, если слово длиннее chunk_size
+        separators=["\n\n", "\n", " ", ""]
+    )
+
+    # 4. Выполняем разбиение текста
+    #    Метод split_text возвращает список строк, гарантируя, что ни один чанк не превысит chunk_size токенов,
+    #    и что границы будут максимально "естественными".
+    chunks = text_splitter.split_text(text)
+
+    # 5. Дополнительная очистка: удаляем чанки, которые после разбиения оказались пустыми
+    #    или состоят только из пробелов (редкий, но возможный случай).
+    cleaned_chunks = [chunk.strip() for chunk in chunks if chunk.strip()]
+
+    return cleaned_chunks
 
 def load_knowledge_base():
     """
@@ -137,6 +176,9 @@ def load_knowledge_base():
             print("Не найдено подходящих файлов (.txt или .pdf) в папке knowledge_files/")
         return
 
+    # При добавлении ChromaDB автоматически использует встроенную функцию эмбеддинга
+    # (по умолчанию all-MiniLM-L6-v2 через sentence-transformers),
+    # чтобы превратить текст из all_chunks в векторы и сохранить их
     collection.add(
         documents=all_chunks,
         ids=all_ids,
