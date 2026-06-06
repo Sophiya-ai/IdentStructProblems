@@ -36,9 +36,12 @@ def _load_model(model_name: str = DEFAULT_MODEL_NAME):
     global _tokenizer, _model
     if _model is None:
         logger.info(f"Загрузка модели {model_name} для вычисления перплексии...")
+
         # Токенизатор – автоматически определяется конфигурацией модели
         _tokenizer = AutoTokenizer.from_pretrained(model_name)
-        # Для авторегрессионных моделей padding_side должен быть слева
+
+        # Для авторегрессионных моделей padding_side должен быть слева.
+        # Ожидает токен паддинга (pad_token), если его нет, используем eos
         if _tokenizer.pad_token is None:
             _tokenizer.pad_token = _tokenizer.eos_token
         _tokenizer.padding_side = "left"
@@ -52,35 +55,72 @@ def _load_model(model_name: str = DEFAULT_MODEL_NAME):
         _model.eval()  # отключаем dropout и другие обучающие слои
     return _tokenizer, _model
 
-def compute_ppl(text: str, model_name: str = DEFAULT_MODEL_NAME) -> float:
+
+def compute_ppl(text: str, model_name: str = DEFAULT_MODEL_NAME, use_chat_template: bool = True) -> float:
     """
-    Вычисляет перплексию (perplexity) переданного текста.
-    Возвращает число >= 1.0. Чем ниже значение, тем текст «более ожидаем»
-    для модели.
+    Вычисляет перплексию текста. Возвращает число >= 1.0. Чем ниже значение, тем текст «более ожидаем» для модели.
+    Если use_chat_template=True, текст оборачивается в чат-шаблон Llama 3.
     """
     tokenizer, model = _load_model(model_name)
 
-    # Токенизируем текст, обрезая до 1024 токенов для эффективности
-    # и возвращая тензоры PyTorch
-    encodings = tokenizer(
-        text,
-        return_tensors="pt",
-        truncation=True,
-        max_length=max_length
-    )
+    if use_chat_template:
+        # Формируем сообщение от пользователя и применяем чат-шаблон
+        messages = [{"role": "user", "content": text}]
+        input_ids = tokenizer.apply_chat_template(
+            messages,
+            return_tensors="pt",
+            truncation=True,
+            max_length=8192  # можно увеличить, модель поддерживает до 128k
+        )
+    else:
+        # Обычная токенизация (для неинструктивных моделей)
+        encodings = tokenizer(
+            text,
+            return_tensors="pt",
+            truncation=True,
+            max_length=1024
+        )
+        input_ids = encodings.input_ids
 
-    input_ids = encodings.input_ids.to(model.device)
-    attention_mask = encodings.attention_mask.to(model.device)   # attention_mask — это бинарный тензор той же длины,
-                                        # что и input_ids, который указывает модели, какие токены являются реальными
-                                        # данными (значение 1), а какие — паддингом (заполнением, значение 0)
-
-    # Вычисляем лосс (кросс‑энтропию) на предсказании каждого токена
+    input_ids = input_ids.to(model.device)
+    # attention_mask не требуется, так как labels=input_ids автоматически
+    # вычисляет лосс только для не‑паддинговых токенов, а у нас их нет
     with torch.no_grad():
-        outputs = model(input_ids, attention_mask=attention_mask, labels=input_ids)
-        loss = outputs.loss  # средняя кросс‑энтропия по токенам
+        outputs = model(input_ids, labels=input_ids)
+        loss = outputs.loss
 
-    # Перплексия = exp(loss)
     return torch.exp(loss).item()
+
+
+# def compute_ppl(text: str, model_name: str = DEFAULT_MODEL_NAME) -> float:
+#     """
+#     Вычисляет перплексию (perplexity) переданного текста.
+#     Возвращает число >= 1.0. Чем ниже значение, тем текст «более ожидаем»
+#     для модели.
+#     """
+#     tokenizer, model = _load_model(model_name)
+#
+#     # Токенизируем текст, обрезая до 1024 токенов для эффективности
+#     # и возвращая тензоры PyTorch
+#     encodings = tokenizer(
+#         text,
+#         return_tensors="pt",
+#         truncation=True,
+#         max_length=max_length
+#     )
+#
+#     input_ids = encodings.input_ids.to(model.device)
+#     attention_mask = encodings.attention_mask.to(model.device)   # attention_mask — это бинарный тензор той же длины,
+#                                         # что и input_ids, который указывает модели, какие токены являются реальными
+#                                         # данными (значение 1), а какие — паддингом (заполнением, значение 0)
+#
+#     # Вычисляем лосс (кросс‑энтропию) на предсказании каждого токена
+#     with torch.no_grad():
+#         outputs = model(input_ids, attention_mask=attention_mask, labels=input_ids)
+#         loss = outputs.loss  # средняя кросс‑энтропия по токенам
+#
+#     # Перплексия = exp(loss)
+#     return torch.exp(loss).item()
 
 def perplexity_confidence(prompt: str, response: str, model_name: str = DEFAULT_MODEL_NAME) -> float:
     """
