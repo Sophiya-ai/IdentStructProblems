@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 # Идентификатор модели на Hugging Face Hub
 DEFAULT_MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
 
+# Ограничение на контекстное окно
+max_length=1024
+
 # Глобальные переменные для ленивой загрузки (один раз за сессию)
 _tokenizer = None
 _model = None
@@ -63,7 +66,7 @@ def compute_ppl(text: str, model_name: str = DEFAULT_MODEL_NAME) -> float:
         text,
         return_tensors="pt",
         truncation=True,
-        max_length=1024
+        max_length=max_length
     )
 
     input_ids = encodings.input_ids.to(model.device)
