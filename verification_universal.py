@@ -212,7 +212,7 @@ def verify_model(
     max_temp = 1.2
     attempt = 0
 
-    while len(variants) < 2 and current_temp <= max_temp:
+    while len(variants) < 3 and current_temp <= max_temp:
         attempt += 1
         logger.info(
             f"Попытка #{attempt}: генерация {current_extra_samples} вариантов "
