@@ -281,28 +281,25 @@ def verify_model(
         logger.info(f"Уверенность на основе перплексии : {ppl_conf:.2f}")
 
     # 6. Комбинированная уверенность
-    #    Веса: судья 0.6, RAG 0.2 (если есть), перплексия 0.2 (если есть)
-    #    Если какой-то компонент отсутствует, его вес перераспределяется пропорционально.
+    # Судья: 0.7, RAG: 0.15, Перплексия: 0.15
     total_weight = 0.0
     overall_conf = 0.0
 
     if judge_conf is not None:
-        overall_conf += 0.6 * judge_conf
-        total_weight += 0.6
-
+        overall_conf += 0.7 * judge_conf
+        total_weight += 0.7
     if rag_conf is not None:
-        overall_conf += 0.2 * rag_conf
-        total_weight += 0.2
-
+        overall_conf += 0.15 * rag_conf
+        total_weight += 0.15
     if ppl_conf is not None:
-        overall_conf += 0.2 * ppl_conf
-        total_weight += 0.2
+        overall_conf += 0.15 * ppl_conf
+        total_weight += 0.15
 
-    # Нормализуем на сумму присутствующих весов
+    # Нормируем на сумму присутствующих весов
     if total_weight > 0:
         overall_conf /= total_weight
     else:
-        overall_conf = 0.5  # fallback - полная неопределённость
+        overall_conf = 0.5    # fallback - полная неопределённость
 
     acceptable = overall_conf >= confidence_threshold
 

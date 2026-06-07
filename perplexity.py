@@ -41,7 +41,8 @@ def _load_model(model_name: str = DEFAULT_MODEL_NAME):
         _tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         # Для авторегрессионных моделей padding_side должен быть слева.
-        # Ожидает токен паддинга (pad_token), если его нет, используем eos
+        # Ожидает токен паддинга (pad_token), если его нет, используем eos (End of Sequence)
+        # eos - конец текста (например, </s> или <|im_end|>).
         if _tokenizer.pad_token is None:
             _tokenizer.pad_token = _tokenizer.eos_token
         _tokenizer.padding_side = "left"
@@ -70,7 +71,7 @@ def compute_ppl(text: str, model_name: str = DEFAULT_MODEL_NAME, use_chat_templa
             messages,
             return_tensors="pt",
             truncation=True,
-            max_length=8192  # можно увеличить, модель поддерживает до 128k
+            max_length=8192  # можно увеличить (модель поддерживает до 128k) или уменьшить до 1024
         )
     else:
         # Обычная токенизация (для неинструктивных моделей)
