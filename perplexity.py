@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 # Идентификатор модели на Hugging Face Hub
 DEFAULT_MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
 
-# Ограничение на контекстное окно
-max_length=1024
+# Ограничение на контекстное окно - можно увеличить (модель поддерживает до 128k) или уменьшить до 1024
+max_length=8192
 
 # Глобальные переменные для ленивой загрузки (один раз за сессию)
 _tokenizer = None
@@ -71,7 +71,7 @@ def compute_ppl(text: str, model_name: str = DEFAULT_MODEL_NAME, use_chat_templa
             messages,
             return_tensors="pt",
             truncation=True,
-            max_length=8192  # можно увеличить (модель поддерживает до 128k) или уменьшить до 1024
+            max_length=max_length
         )
     else:
         # Обычная токенизация (для неинструктивных моделей)
