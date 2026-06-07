@@ -5,7 +5,7 @@ from typing import Dict, Any, List, Tuple, Callable, Optional
 from dotenv import load_dotenv
 
 from micro_model import (
-    build_prompt as build_micro_prompt,        # формирование промпта для генерации микро‑модели
+    build_prompt as build_micro_prompt,  # формирование промпта для генерации микро‑модели
     parse_micro_model as parse_json
 )
 from call_llm import call_openrouter
@@ -29,16 +29,17 @@ DEFAULT_JUDGE_MODEL = os.getenv("DEFAULT_JUDGE_MODEL")
 if not DEFAULT_JUDGE_MODEL:
     raise RuntimeError("Переменная окружения DEFAULT_JUDGE_MODEL не установлена")
 
+
 # ---------------------------------------------------------------------------
 # Вспомогательные функции
 # ---------------------------------------------------------------------------
 def semantic_validate_model(
-    context: dict,                    # контекст, в рамках которого модель создана (макромодель, описание подпроблемы и т.п.)
-    model: dict,                      # проверяемая модель (микро, макро и др.)
-    model_type: str,                  # название типа модели для промпта, например "микроуровневая модель"
-    validation_criteria: str,         # текстовое описание критериев проверки (структура, осмысленность и т.д.)
-    judge_model: str = DEFAULT_JUDGE_MODEL,
-    accept_threshold: float = 0.6
+        context: dict,  # контекст, в рамках которого модель создана (макромодель, описание подпроблемы и т.п.)
+        model: dict,  # проверяемая модель (микро, макро и др.)
+        model_type: str,  # название типа модели для промпта, например "микроуровневая модель"
+        validation_criteria: str,  # текстовое описание критериев проверки (структура, осмысленность и т.д.)
+        judge_model: str = DEFAULT_JUDGE_MODEL,
+        accept_threshold: float = 0.6
 ) -> Tuple[bool, float, str]:
     """
     УНИВЕРСАЛЬНАЯ СЕМАНТИЧЕСКАЯ ПРОВЕРКА: Проверяет модель на соответствие контексту по заданным критериям.
@@ -64,6 +65,7 @@ def semantic_validate_model(
     passed = accept and score >= accept_threshold
     return passed, score, reasoning
 
+
 # Проверка обязательных полей и их типов для микромодели
 def validate_micro_structure(micro: dict) -> bool:
     required = ["sitm", "sbjm", "STHM", "pfmt", "metm"]
@@ -78,6 +80,7 @@ def validate_micro_structure(micro: dict) -> bool:
         return False
     return True
 
+
 # Проверяет обязательные поля и их типы для макро‑модели
 """ в разработке
 def validate_macro_structure(macro: dict) -> bool:
@@ -85,14 +88,15 @@ def validate_macro_structure(macro: dict) -> bool:
     return all(k in macro for k in required)
 """
 
+
 def create_combined_validator(
-    context: dict,                                # контекст для семантической проверки
-    structure_validator: Callable[[dict], bool],  # функция структурной валидации
-    model_type: str,                               # тип модели (для промпта)
-    validation_criteria: str,                      # описание критериев семантической проверки
-    enable_semantic: bool = True,
-    semantic_model: str = DEFAULT_JUDGE_MODEL,
-    semantic_threshold: float = 0.6
+        context: dict,  # контекст для семантической проверки
+        structure_validator: Callable[[dict], bool],  # функция структурной валидации
+        model_type: str,  # тип модели (для промпта)
+        validation_criteria: str,  # описание критериев семантической проверки
+        enable_semantic: bool = True,
+        semantic_model: str = DEFAULT_JUDGE_MODEL,
+        semantic_threshold: float = 0.6
 ) -> Callable[[dict], bool]:
     """
     УНИВЕРСАЛЬНЫЙ КОМБИНИРОВАННЫЙ ВАЛИДАТОР (СТРУКТУРА + СЕМАНТИКА).
@@ -100,6 +104,7 @@ def create_combined_validator(
     затем (опционально) выполняет семантическую проверку через БЯМ.
     Возвращает True, только если модель прошла все проверки.
     """
+
     def validator(model: dict) -> bool:
         if not structure_validator(model):
             return False
@@ -114,7 +119,9 @@ def create_combined_validator(
         if not passed:
             logger.info(f"Модель типа '{model_type}' отклонена семантической проверкой (score={score:.2f})")
         return passed
+
     return validator
+
 
 # Возвращает объект retriever'а или None
 def get_retriever():
@@ -125,11 +132,12 @@ def get_retriever():
         logger.info("Модуль retrieval не найден, RAG недоступен.")
         return None
 
+
 def rag_confidence(
-    macro_context: dict,          # контекст (макро‑модель) для формирования запроса
-    model: dict,                  # проверяемая модель (микро или макро)
-    top_k: int = 6,
-    rag_prompt_template: str = PROMPT_RAG_CONFIDENCE
+        macro_context: dict,  # контекст (макро‑модель) для формирования запроса
+        model: dict,  # проверяемая модель (микро или макро)
+        top_k: int = 6,
+        rag_prompt_template: str = PROMPT_RAG_CONFIDENCE
 ) -> Tuple[float, str]:
     """
     Оценивает соответствие модели документам из базы знаний.
@@ -170,24 +178,25 @@ def judge_variants(judge_prompt: str) -> Tuple[dict, float, str]:
     reasoning = result.get("reasoning", "")
     return final_model, confidence, reasoning
 
+
 # ===================================================================
 # УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ВЕРИФИКАЦИИ
 # ===================================================================
 def verify_model(
-    # Основные данные
-    initial_model: dict,                      # исходная модель для верификации
-    context_for_generation: dict,             # данные для генерации промпта (макро‑модель)
-    generation_prompt_builder: Callable[[dict], str] = None,  # функция(context) -> str
-    structure_validator: Callable[[dict], bool] = lambda x: True,
-    judge_prompt_builder: Optional[Callable[[dict, List[dict]], str]] = None,
-    generation_model: str = DEFAULT_GENERATION_MODEL,
-    use_rag: bool = True,
-    use_perplexity: bool = True,
-    rag_prompt_template: str = PROMPT_RAG_CONFIDENCE,
-    num_samples: int = 5,
-    temperature: float = 0.7,
-    confidence_threshold: float = 0.7,
-    context_for_rag: Optional[dict] = None,   # данные для RAG‑запроса (если отличаются)
+        # Основные данные
+        initial_model: dict,  # исходная модель для верификации
+        context_for_generation: dict,  # данные для генерации промпта (макро‑модель)
+        generation_prompt_builder: Callable[[dict], str] = None,  # функция(context) -> str
+        model_validator: Callable[[dict], bool] = lambda x: True,
+        judge_prompt_builder: Optional[Callable[[dict, List[dict]], str]] = None,
+        generation_model: str = DEFAULT_GENERATION_MODEL,
+        use_rag: bool = True,
+        use_perplexity: bool = True,
+        rag_prompt_template: str = PROMPT_RAG_CONFIDENCE,
+        num_samples: int = 5,
+        temperature: float = 0.7,
+        confidence_threshold: float = 0.7,
+        context_for_rag: Optional[dict] = None,  # данные для RAG‑запроса (если отличаются)
 ) -> Dict[str, Any]:
     """
     Универсальная верификация модели (микро, макро и др.)
@@ -225,11 +234,11 @@ def verify_model(
                 temperature=current_temp
             )
             model = parse_json(raw)
-            if model and structure_validator(model):
+            if model and model_validator(model):
                 variants.append(model)
             else:
                 logger.warning(
-                    f"Вариант {i+1} из попытки #{attempt} не прошёл валидацию, пропущен."
+                    f"Вариант {i + 1} из попытки #{attempt} не прошёл валидацию, пропущен."
                 )
         if len(variants) < 3:
             current_temp += 0.1
@@ -256,7 +265,7 @@ def verify_model(
     final_model, judge_conf, reasoning = judge_variants(judge_prompt)
 
     # 3. Структурная + семантическая (опционально) валидация итога
-    if not structure_validator(final_model):
+    if not model_validator(final_model):
         logger.warning("Итоговая модель имеет структурные нарушения, уверенность снижена.")
         judge_conf *= 0.8
         reasoning += "\nВнимание: модель имеет структурные/семантические нарушения."
@@ -299,7 +308,7 @@ def verify_model(
     if total_weight > 0:
         overall_conf /= total_weight
     else:
-        overall_conf = 0.5    # fallback - полная неопределённость
+        overall_conf = 0.5  # fallback - полная неопределённость
 
     acceptable = overall_conf >= confidence_threshold
 
@@ -313,6 +322,7 @@ def verify_model(
         "reasoning": reasoning
     }
 
+
 # Функция формирования промпта судьи для микромоделей (использует универсальный промпт)
 def _build_judge_prompt_for_micro(context: dict, variants: List[dict]) -> str:
     context_description = json.dumps({
@@ -321,7 +331,7 @@ def _build_judge_prompt_for_micro(context: dict, variants: List[dict]) -> str:
         "требования_к_микромодели": MICRO_VALIDATION_CRITERIA
     }, ensure_ascii=False, indent=2)
     variants_text = "\n\n".join(
-        f"Вариант {i+1}:\n{json.dumps(v, ensure_ascii=False, indent=2)}"
+        f"Вариант {i + 1}:\n{json.dumps(v, ensure_ascii=False, indent=2)}"
         for i, v in enumerate(variants)
     )
     return PROMPT_JUDGE_VARIANTS.format(
@@ -329,6 +339,7 @@ def _build_judge_prompt_for_micro(context: dict, variants: List[dict]) -> str:
         context_description=context_description,
         variants_text=variants_text
     )
+
 
 """ в разработке
 def _build_judge_prompt_for_macro(context: dict, variants: List[dict]) -> str:
@@ -345,22 +356,22 @@ def _build_judge_prompt_for_macro(context: dict, variants: List[dict]) -> str:
     )
 """
 
+
 # ===================================================================
 # ОБЁРТКА ДЛЯ МИКРО‑МОДЕЛИ
 # ===================================================================
 def verify_micro_model(
-    macro_model: dict,
-    initial_micro: dict,
-    generation_model: str = DEFAULT_GENERATION_MODEL,
-    use_rag: bool = True,
-    use_perplexity: bool = True,
-    num_samples: int = 5,
-    temperature: float = 0.7,
-    confidence_threshold: float = 0.7,
-    enable_semantic_validation: bool = True,
-    semantic_accept_threshold: float = 0.6
+        macro_model: dict,
+        initial_micro: dict,
+        generation_model: str = DEFAULT_GENERATION_MODEL,
+        use_rag: bool = True,
+        use_perplexity: bool = True,
+        num_samples: int = 5,
+        temperature: float = 0.7,
+        confidence_threshold: float = 0.7,
+        enable_semantic_validation: bool = True,
+        semantic_accept_threshold: float = 0.6
 ) -> Dict[str, Any]:
-
     # Верификация микромодели (частный случай verify_model)
     combined_validator = create_combined_validator(
         context=macro_model,
@@ -376,7 +387,7 @@ def verify_micro_model(
         initial_model=initial_micro,
         context_for_generation=macro_model,
         generation_prompt_builder=build_micro_prompt,
-        structure_validator=combined_validator,
+        model_validator=combined_validator,
         judge_prompt_builder=_build_judge_prompt_for_micro,
         generation_model=generation_model,
         use_rag=use_rag,
@@ -386,6 +397,7 @@ def verify_micro_model(
         temperature=temperature,
         confidence_threshold=confidence_threshold
     )
+
 
 """ В разработке
 def verify_macro_model(
