@@ -62,33 +62,32 @@ def compute_ppl(
     if apply_chat:
         # Инструктивный режим: применяем чат‑шаблон
         messages = [{"role": "user", "content": text}]
-        # apply_chat_template возвращает сразу input_ids (без attention_mask)
-        input_ids = tokenizer.apply_chat_template(
+        # apply_chat_template возвращает BatchEncoding с ключами input_ids и attention_mask
+        enc = tokenizer.apply_chat_template(
             messages,
             return_tensors="pt",
             truncation=True,
-            max_length=max_length
+            max_length=max_length,
+            padding=False  # паддинг не нужен, маска будет из единиц
         )
-        input_ids = input_ids.to(model.device)
-        # Создаём маску из единиц, так как паддинг отсутствует
-        attention_mask = torch.ones_like(input_ids)
     else:
-        # Обычная токенизация для неинструктивных моделей
-        encodings = tokenizer(
+        enc = tokenizer(
             text,
             return_tensors="pt",
             truncation=True,
             max_length=max_length,
-            padding=False    # без паддинга для одного текста
+            padding=False
         )
-        input_ids = encodings["input_ids"].to(model.device)
 
-        # attention_mask — это бинарный тензор той же длины,
-        # что и input_ids, который указывает модели, какие токены являются реальными
-        # данными (значение 1), а какие — паддингом (заполнением, значение 0)
-        # передаем всегда для гарантии стабильной работы с любыми моделями и исключения предупреждений
-        # (даже в случае apply_chat_template передаем - создаётся маска из единиц)
-        attention_mask = encodings["attention_mask"].to(model.device)
+    # enc всегда BatchEncoding (словарь), поэтому безопасно извлекаем тензоры по ключам
+    input_ids = enc.input_ids.to(model.device)
+
+    # attention_mask всегда присутствует при return_tensors="pt" для гарантии стабильной работы с любыми моделями
+    # и исключения предупреждений(даже без паддинга — все единицы)
+    # attention_mask — это бинарный тензор той же длины,
+    # что и input_ids, который указывает модели, какие токены являются реальными
+    # данными (значение 1), а какие — паддингом (заполнением, значение 0)
+    attention_mask = enc.attention_mask.to(model.device)
 
     with torch.no_grad():
         outputs = model(input_ids, attention_mask=attention_mask, labels=input_ids)
