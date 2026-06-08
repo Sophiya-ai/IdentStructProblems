@@ -8,7 +8,8 @@ def add_subproblem(
     confidence_macro: str | None = None,      # None или 'low'
     reasoning_macro: str | None = None,
     confidence_micro: str | None = None,      # None или 'low'
-    reasoning_micro: str | None = None
+    reasoning_micro: str | None = None,
+    reasoning_prbfld: str | None = None
 ) -> int:
     """
     Добавляет новую подпроблему.
@@ -22,8 +23,9 @@ def add_subproblem(
                 INSERT INTO "subproblems" 
                     ("parent_id", "macro_model", "micro_model", 
                      "confidence_macro", "reasoning_macro", 
-                     "confidence_micro", "reasoning_micro")
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                     "confidence_micro", "reasoning_micro",
+                     "reasoning_prbfld")
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING "id";
                 """,
                 (
@@ -34,6 +36,7 @@ def add_subproblem(
                     reasoning_macro,
                     confidence_micro,          # строка или None
                     reasoning_micro,
+                    reasoning_prbfld,
                 )
             )
             new_id = cur.fetchone()[0]
@@ -51,7 +54,8 @@ def get_subproblem(problem_id: int) -> dict | None:
                 """
                 SELECT "id", "parent_id", "macro_model", "micro_model",
                        "confidence_macro", "reasoning_macro",
-                       "confidence_micro", "reasoning_micro"
+                       "confidence_micro", "reasoning_micro",
+                       "reasoning_prbfld"
                 FROM "subproblems"
                 WHERE "id" = %s;
                 """,
@@ -68,6 +72,7 @@ def get_subproblem(problem_id: int) -> dict | None:
                     "reasoning_macro": row[5],
                     "confidence_micro": row[6],       # str или None
                     "reasoning_micro": row[7],
+                    "reasoning_prbfld": row[8],
                 }
             return None
     finally:
@@ -82,7 +87,8 @@ def update_subproblem(
     confidence_macro: str | None = None,    # 'low' или None
     reasoning_macro: str | None = None,
     confidence_micro: str | None = None,    # 'low' или None
-    reasoning_micro: str | None = None
+    reasoning_micro: str | None = None,
+    reasoning_prbfld: str | None = None
 ) -> bool:
     conn = get_connection()
     try:
@@ -111,6 +117,9 @@ def update_subproblem(
             if reasoning_micro is not None:
                 fields.append('"reasoning_micro" = %s')
                 values.append(reasoning_micro)
+            if reasoning_prbfld is not None:
+                fields.append('"reasoning_prbfld" = %s')
+                values.append(reasoning_prbfld)
 
             if not fields:
                 return False
@@ -146,7 +155,8 @@ def search_by_name(search_term: str) -> list[dict]:
                 """
                 SELECT "id", "parent_id", "macro_model", "micro_model",
                        "confidence_macro", "reasoning_macro",
-                       "confidence_micro", "reasoning_micro"
+                       "confidence_micro", "reasoning_micro",
+                       "reasoning_prbfld"
                 FROM "subproblems"
                 WHERE "macro_model"->>'sbj' ILIKE %s
                    OR "macro_model"->>'sit' ILIKE %s;
@@ -164,6 +174,7 @@ def search_by_name(search_term: str) -> list[dict]:
                     "reasoning_macro": r[5],
                     "confidence_micro": r[6],
                     "reasoning_micro": r[7],
+                    "reasoning_prbfld": r[8],
                 }
                 for r in rows
             ]
@@ -179,7 +190,8 @@ def get_root_problems() -> list[dict]:
                 """
                 SELECT "id", "macro_model",
                        "confidence_macro", "reasoning_macro",
-                       "confidence_micro", "reasoning_micro"
+                       "confidence_micro", "reasoning_micro",
+                       "reasoning_prbfld"
                 FROM "subproblems"
                 WHERE "parent_id" IS NULL
                 ORDER BY "id";
@@ -199,6 +211,7 @@ def get_root_problems() -> list[dict]:
                     "reasoning_macro": r[3],
                     "confidence_micro": r[4],
                     "reasoning_micro": r[5],
+                    "reasoning_prbfld": r[6],
                 })
             return result
     finally:
