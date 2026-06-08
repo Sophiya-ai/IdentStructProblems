@@ -276,7 +276,7 @@ def verify_model(
         rag_conf, rag_reason = rag_confidence(
             context_for_rag, final_model, rag_prompt_template=rag_prompt_template
         )
-        reasoning += f"\nRAG‑оценка: {rag_reason}"
+        reasoning += f"\nRAG‑оценка {rag_conf}: {rag_reason}"
         logger.info(f"RAG‑оценка: {rag_conf} Причина: {rag_reason}")
 
     # 5. Perplexity-based Confidence
