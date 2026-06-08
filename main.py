@@ -133,6 +133,29 @@ def menu():
                     reasoning_micro=reasoning
                 )
                 print(f"Корневая проблема сохранена с id = {new_id}")
+
+            # ВАРИАНТ КОДА, ЕСЛИ ИЗМЕНЮ БД и обновлю subproblems_repo.py
+            # if acceptable or True:  # даже если не прошла, сохраняем с пометкой 'low'
+            #     confidence = {
+            #         "conf_macro": None,  # macro_confidence, если определена
+            #         "conf_micro": micro_confidence,  # 'low' или None
+            #         "conf_prbfld": None,  # prbfld_confidence, если определена
+            #         "conf_integ": None  # integ_confidence, если определена
+            #     }
+            #     reasoning = {
+            #         "reas_macro": None,  # macro_reasoning, если определено
+            #         "reas_micro": reasoning,  # строка с микро-рассуждением
+            #         "reas_prbfld": None,  # prbfld_reasoning, если определено
+            #         "reas_integ": None  # integ_reasoning, если определено
+            #     }
+            #     new_id = subproblems_repo.add_subproblem(
+            #         parent_id=None,
+            #         macro_model=macro,
+            #         micro_model=final_micro,
+            #         confidence=confidence,
+            #         reasoning=reasoning
+            #     )
+            #     print(f"Корневая проблема сохранена с id = {new_id}")
         elif choice == '8':
             print("\n=== Просмотр проблем с низкой уверенностью ===")
             root_id_str = input("Введите db_id корневой проблемы (или Enter для просмотра всех, что есть в БД): ").strip()
