@@ -34,5 +34,40 @@
     },
     "children": [],
     "relations": []
+  },
+  {
+    "problem_id": "P1",
+    "db_id": 7,
+    "macro_model": {
+      "id": "P1",
+      "est": "Критично",
+      "sbj": "HR-отдел",
+      "sit": "Высокая текучесть кадров"
+    },
+    "children": [
+      {
+        "problem_id": "P1.1",
+        "db_id": 8,
+        "macro_model": {
+          "id": "P1.1",
+          "est": "Высокая",
+          "sbj": "HR-отдел",
+          "sit": "Недостаток мотивации"
+        },
+        "children": [],
+        "relations": [
+          {
+            "relationship_name": "is-a",
+            "relationship_class": "Таксономические",
+            "target_problem_id": "P1",
+            "target_db_id": 7,
+            "metadata": {
+              "weight": 0.9
+            }
+          }
+        ]
+      }
+    ],
+    "relations": []
   }
 ]

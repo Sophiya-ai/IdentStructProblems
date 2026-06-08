@@ -81,7 +81,8 @@ def menu():
         print("7. Идентификация проблемы")
         print("8. Просмотр проблем с низкой уверенностью.")
         print("9. Проверка БД - была ли уже декомпозирована схожая проблема?")
-        print("10. Выход")
+        print("10. Вывод всех иерархий БД")
+        print("11. Выход")
         choice = input("Выберите пункт меню: ").strip()
 
         if choice == '1':
@@ -160,6 +161,8 @@ def menu():
                     sit = p['macro_model'].get('sit', '') if p['macro_model'] else ''
                     print(f"    Описание: {sit[:100]}...")
         elif choice == '10':
+            full_hierarchy()
+        elif choice == '11':
             print("Выход из программы.")
             break
         else:
@@ -170,11 +173,8 @@ if __name__ == "__main__":
     # создаем индексы, если отсутствуют
     #ensure_indexes()
 
-    # Сначала можно заполнить БД (если нужно)
-    #fill_demo_data()
-
-    # Показать всю иерархию
-    full_hierarchy()
+    # заполнить БД (тест)
+    # fill_demo_data()
 
     menu()
 

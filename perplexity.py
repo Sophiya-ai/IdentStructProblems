@@ -14,8 +14,10 @@ logger = logging.getLogger(__name__)
 #  - Применение: оценка «естественности» текста через перплексию.
 # ---------------------------------------------------------------------------
 
-DEFAULT_MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
-DEFAULT_MAX_LENGTH = 8192   # можно менять для разных моделей
+# DEFAULT_MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
+# DEFAULT_MAX_LENGTH = 8192   # можно менять для разных моделей
+DEFAULT_MODEL_NAME = "distilgpt2"
+DEFAULT_MAX_LENGTH = 1024
 
 _tokenizer = None
 _model = None

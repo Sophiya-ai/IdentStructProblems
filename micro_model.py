@@ -54,24 +54,24 @@ def build_prompt(macro_model: dict) -> str:
 # ---------------------------------------------------------------------------
 # Парсинг ответа БЯМ в микромодель - извлекает JSON из ответа БЯМ и возвращает как словарь
 # ---------------------------------------------------------------------------
-def parse_micro_model(llm_response: str) -> dict:
-    """."""
-    # Иногда LLM может обернуть JSON в ```json ... ```, убираем
+def parse_micro_model(llm_response: str) -> dict | None:
+    """Безопасно извлекает JSON из ответа LLM. Возвращает словарь или None при ошибке."""
     cleaned = llm_response.strip()
     if cleaned.startswith("```json"):
         cleaned = cleaned[len("```json"):].strip()
     if cleaned.endswith("```"):
         cleaned = cleaned[:-3].strip()
-    # иногда перед JSON может быть текст, ищем первую '{' и последнюю '}'
     start_idx = cleaned.find('{')
     end_idx = cleaned.rfind('}')
     if start_idx != -1 and end_idx != -1:
         cleaned = cleaned[start_idx:end_idx+1]
     try:
-        micro = json.loads(cleaned)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Не удалось распарсить JSON из ответа LLM: {e}\nОтвет был:\n{llm_response}")
-    return micro
+        return json.loads(cleaned)
+    except (json.JSONDecodeError, ValueError) as e:
+        # Логируем предупреждение и возвращаем None, чтобы вариант был отброшен
+        import logging
+        logging.getLogger(__name__).warning(f"Невалидный JSON от LLM: {e}")
+        return None
 
 # ---------------------------------------------------------------------------
 # Основная функция генерации микромодели
