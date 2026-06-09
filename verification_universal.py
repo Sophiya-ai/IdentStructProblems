@@ -235,6 +235,7 @@ def verify_model(
             )
             model = parse_json(raw)
             if model and model_validator(model):
+                logger.info(f"Получено: {len(variants)} валидных вариантов. Сэмплируем дальше...")
                 variants.append(model)
             else:
                 logger.warning(

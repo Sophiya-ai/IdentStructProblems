@@ -12,7 +12,7 @@ OPENROUTER_MODEL = os.getenv("DEFAULT_GENERATION_MODEL")
 # ---------------------------------------------------------------------------
 # Загрузка макро‑модели
 # ---------------------------------------------------------------------------
-DEFAULT_MACRO_FILE = "macro_model.json"
+from config import DEFAULT_MACRO_FILE
 
 def load_macro_model_from_console() -> dict:
     """Интерактивный ввод полей макромодели с консоли"""

@@ -3,7 +3,7 @@
 Если в базе данных много проблем, полная загрузка всего дерева (пункты 2–3) может занять много памяти и времени.
 Рекурсивный CTE (пункты 4–5) извлекает только нужное поддерево, что гораздо эффективнее.
 """
-import json
+#import json
 from db import close_all, get_connection, put_connection
 from repositories import subproblems_repo, relclass_repo, relname_repo, problem_rels_repo
 from repositories.show_data_DB import (
@@ -82,10 +82,10 @@ def menu():
         print("5. Показать иерархию по макромодельному id (рекурсивный CTE)")
         print("6. Загрузить файлы в векторную  БД")
         print("7. Идентификация проблемы")
-        print("8. Просмотр проблем с низкой уверенностью.")
+        print("8. Просмотр проблем с низкой уверенностью")
         print("9. Проверка БД - была ли уже декомпозирована схожая проблема?")
         print("10. Вывод всех иерархий БД")
-        print("11. Сменить порог уверенности <CONFIDENCE_THRESHOLD>")
+        print("11. Сменить порог уверенности <CONFIDENCE_THRESHOLD> сгенерированных элементов, описывающих проблему")
         print("12. Выход")
         choice = input("Выберите пункт меню: ").strip()
 
@@ -104,8 +104,8 @@ def menu():
         elif choice == '7':
             print("\n=== Идентификация проблемы ===")
             macro, micro = generate_micro_model()
-            print("\nМикроуровневая модель корневой проблемы сгенерирована:")
-            print(json.dumps(micro, ensure_ascii=False, indent=2))
+            print("\nМикроуровневая модель корневой проблемы сгенерирована")
+            #print(json.dumps(micro, ensure_ascii=False, indent=2))
 
             # Верификация
             result = verify_micro_model(
@@ -128,15 +128,52 @@ def menu():
             # Определяем уровень уверенности для сохранения
             micro_confidence = None if acceptable else "low"
 
-            if acceptable or True:  # даже если не прошла, сохраняем с пометкой 'low'
+            # Формируем словари для JSONB-колонок ВСЕГДА, даже если значения внутри None
+            confidence_dict = {
+                "conf_macro": None,              # macro_confidence, если определена
+                "conf_micro": micro_confidence,  # 'low' или None
+                "conf_prbfld": None              # prbfld_confidence, если определена
+            }
+
+            reasoning_dict = {
+                "reas_macro": None,        # macro_reasoning, если определено
+                "reas_micro": reasoning,   # строка с микро-рассуждением
+                "reas_prbfld": None        # prbfld_reasoning, если определено
+            }
+
+            print(f"Формируем словари для JSONB-колонок", flush=True)
+            # print(f"Формируем словари для JSONB-колонок confidence: {confidence_dict}", flush=True)
+            # print("type:", type(confidence_dict), flush=True)
+            # print(f"Формируем словари для JSONB-колонок reasoning: {reasoning_dict}", flush=True)
+            # print("type:", type(reasoning_dict), flush=True)
+
+            try:
+                # Вызываем функцию add_subproblem
                 new_id = subproblems_repo.add_subproblem(
                     parent_id=None,
                     macro_model=macro,
                     micro_model=final_micro,
-                    confidence_micro=micro_confidence,  # 'low' или None
-                    reasoning_micro=reasoning
+                    confidence=confidence_dict,
+                    reasoning=reasoning_dict
                 )
+
                 print(f"Корневая проблема сохранена с id = {new_id}")
+
+                # НЕМЕДЛЕННАЯ проверка
+                # saved = subproblems_repo.get_subproblem(new_id)
+                # print(f"Сохранённый confidence: {saved['confidence']}")
+                # print(f"Тип confidence в Python: {type(saved['confidence'])}")
+                # Сравним строки (для наглядности)
+                # import json as j
+                # expected = j.dumps(confidence_dict)
+                # actual = j.dumps(saved['confidence']) if saved['confidence'] is not None else 'NULL'
+                # print(f"Ожидалось: {expected}", flush=True)
+                # print(f"Фактически: {actual}", flush=True)
+
+            except Exception as e:
+                print(f"\n[ОШИБКА] Не удалось сохранить проблему: {e}")
+                import traceback
+                traceback.print_exc()
         elif choice == '8':
             print("\n=== Просмотр проблем с низкой уверенностью ===")
             root_id_str = input("Введите db_id корневой проблемы, дерево подпроблем которой интересует (или Enter для просмотра всех, что есть в БД): ").strip()
@@ -182,7 +219,7 @@ def menu():
             print("Выход из программы.")
             break
         else:
-            print("Неверный выбор. Пожалуйста, введите число от 1 до 8.")
+            print("Неверный выбор. Пожалуйста, введите число от 1 до 12.")
 
 
 if __name__ == "__main__":
