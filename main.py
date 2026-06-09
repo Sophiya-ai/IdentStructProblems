@@ -15,6 +15,10 @@ from micro_model import generate_micro_model, get_macro_model
 from verification_universal import verify_micro_model
 #from macro_model import generate_macro_model
 
+import config
+
+
+
 # ---------------------------------------------------------------------------
 # Тестовое наполнение БД, чтобы проверить ввод-вывод данных из нее
 # ---------------------------------------------------------------------------
@@ -81,7 +85,8 @@ def menu():
         print("8. Просмотр проблем с низкой уверенностью.")
         print("9. Проверка БД - была ли уже декомпозирована схожая проблема?")
         print("10. Вывод всех иерархий БД")
-        print("11. Выход")
+        print("11. Сменить порог уверенности <CONFIDENCE_THRESHOLD>")
+        print("12. Выход")
         choice = input("Выберите пункт меню: ").strip()
 
         if choice == '1':
@@ -109,7 +114,7 @@ def menu():
                 use_rag=True,  # автоматически задействует retriever, если доступен
                 num_samples=5,
                 temperature=0.7,
-                confidence_threshold=0.7
+                confidence_threshold=config.CONFIDENCE_THRESHOLD
             )
 
             final_micro = result["final_model"]
@@ -132,29 +137,6 @@ def menu():
                     reasoning_micro=reasoning
                 )
                 print(f"Корневая проблема сохранена с id = {new_id}")
-
-            # ВАРИАНТ КОДА, ЕСЛИ ИЗМЕНЮ БД и обновлю subproblems_repo.py
-            # if acceptable or True:  # даже если не прошла, сохраняем с пометкой 'low'
-            #     confidence = {
-            #         "conf_macro": None,  # macro_confidence, если определена
-            #         "conf_micro": micro_confidence,  # 'low' или None
-            #         "conf_prbfld": None,  # prbfld_confidence, если определена
-            #         "conf_integ": None  # integ_confidence, если определена
-            #     }
-            #     reasoning = {
-            #         "reas_macro": None,  # macro_reasoning, если определено
-            #         "reas_micro": reasoning,  # строка с микро-рассуждением
-            #         "reas_prbfld": None,  # prbfld_reasoning, если определено
-            #         "reas_integ": None  # integ_reasoning, если определено
-            #     }
-            #     new_id = subproblems_repo.add_subproblem(
-            #         parent_id=None,
-            #         macro_model=macro,
-            #         micro_model=final_micro,
-            #         confidence=confidence,
-            #         reasoning=reasoning
-            #     )
-            #     print(f"Корневая проблема сохранена с id = {new_id}")
         elif choice == '8':
             print("\n=== Просмотр проблем с низкой уверенностью ===")
             root_id_str = input("Введите db_id корневой проблемы, дерево подпроблем которой интересует (или Enter для просмотра всех, что есть в БД): ").strip()
@@ -185,6 +167,18 @@ def menu():
         elif choice == '10':
             full_hierarchy()
         elif choice == '11':
+            print(f"\nТекущий порог уверенности: {config.CONFIDENCE_THRESHOLD}")
+            user_input = input("Введите новый порог уверенности (число от 0.0 до 1.0): ").strip()
+            try:
+                new_threshold = float(user_input)
+                if 0.0 <= new_threshold <= 1.0:
+                    config.CONFIDENCE_THRESHOLD = new_threshold
+                    print(f"✅ Порог уверенности успешно изменен на {config.CONFIDENCE_THRESHOLD}")
+                else:
+                    print("❌ Ошибка: значение должно быть в диапазоне от 0.0 до 1.0")
+            except ValueError:
+                print("❌ Ошибка: введите корректное число (например, 0.85)")
+        elif choice == '12':
             print("Выход из программы.")
             break
         else:

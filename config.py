@@ -10,3 +10,6 @@ DB_CONFIG = {
     "user": os.getenv("DB_USER", "postgres"),
     "password": os.getenv("DB_PASSWORD", "")
 }
+
+RETRIEVAL_ENABLED = "true"
+CONFIDENCE_THRESHOLD=0.7
