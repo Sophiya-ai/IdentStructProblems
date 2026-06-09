@@ -265,6 +265,7 @@ def verify_model(
     judge_prompt = judge_prompt_builder(context_for_generation, variants)
     final_model, judge_conf, reasoning = judge_variants(judge_prompt)
     reasoning += f"\nИсходная оценка модели самим судьей: {judge_conf}."
+    logger.info(f"\nИсходная оценка модели самим судьей: {judge_conf}")
     # 3. Структурная + семантическая (опционально) валидация итога
     if not model_validator(final_model):
         logger.warning("Итоговая модель имеет структурные нарушения, уверенность снижена.")
