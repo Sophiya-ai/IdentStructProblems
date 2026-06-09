@@ -14,7 +14,7 @@ from prompts import (
     PROMPT_RAG_CONFIDENCE,
     PROMPT_SEMANTIC_VALIDATION
 )
-from validation_criteria import MICRO_VALIDATION_CRITERIA, MACRO_VALIDATION_CRITERIA
+from validation_criteria import MICRO_VALIDATION_CRITERIA#, MACRO_VALIDATION_CRITERIA
 from perplexity import perplexity_confidence
 
 load_dotenv()

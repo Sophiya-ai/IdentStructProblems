@@ -4,7 +4,6 @@
 Рекурсивный CTE (пункты 4–5) извлекает только нужное поддерево, что гораздо эффективнее.
 """
 import json
-import re
 from db import close_all, get_connection, put_connection
 from repositories import subproblems_repo, relclass_repo, relname_repo, problem_rels_repo
 from repositories.show_data_DB import (
@@ -158,7 +157,7 @@ def menu():
             #     print(f"Корневая проблема сохранена с id = {new_id}")
         elif choice == '8':
             print("\n=== Просмотр проблем с низкой уверенностью ===")
-            root_id_str = input("Введите db_id корневой проблемы (или Enter для просмотра всех, что есть в БД): ").strip()
+            root_id_str = input("Введите db_id корневой проблемы, дерево подпроблем которой интересует (или Enter для просмотра всех, что есть в БД): ").strip()
             if root_id_str:
                 try:
                     root_db_id = int(root_id_str)
@@ -194,7 +193,7 @@ def menu():
 
 if __name__ == "__main__":
     # создаем индексы, если отсутствуют
-    #ensure_indexes()
+    ensure_indexes()
 
     # заполнить БД (тест)
     # fill_demo_data()

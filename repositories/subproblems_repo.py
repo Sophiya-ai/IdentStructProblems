@@ -1,4 +1,6 @@
 import json
+from typing import Any
+
 from db import get_connection, put_connection
 
 def add_subproblem(
@@ -243,6 +245,54 @@ def get_all_problems_light() -> list[dict]:
                 for r in rows
             ]
     finally:
+        put_connection(conn)
+
+
+def set_micro_model_field(problem_id: int, field: str, value: Any) -> bool:
+    """
+    Устанавливает значение конкретного поля внутри JSONB-столбца micro_model.
+    Если micro_model равен NULL, он будет инициализирован пустым объектом {}.
+
+    Аргументы:
+        problem_id (int): техническое ID ппроблемы, которую нужно обновить.
+        field (str): название поля внутри JSON‑объекта micro_model,
+                     например 'sbjm', 'sitm'...
+        value (Any): новое значение – может быть строкой, числом, словарём, списком
+                     или None (будет записан JSON null).
+
+    Возвращает:
+        bool: True, если обновлена хотя бы одна строка, иначе False.
+
+    """
+    # Получаем соединение с БД из пула
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            # Преобразуем значение Python в JSON-строку
+            # json.dumps(None) даст 'null', что после ::jsonb станет SQL NULL (JSON null)
+            json_value = json.dumps(value)
+
+            # Используем jsonb_set для замены/добавления поля
+            # COALESCE гарантирует, что при micro_model = NULL начинаем с пустого объекта
+            # путь: '{имя_поля}' – текстовый массив из одного элемента
+            cur.execute(
+                """
+                UPDATE "subproblems"
+                SET "micro_model" = jsonb_set(
+                    COALESCE("micro_model", '{}'::jsonb),   -- если NULL, создать {}
+                    %s,                                     -- путь к полю
+                    %s::jsonb                               -- новое значение как jsonb
+                )
+                WHERE "id" = %s;
+                """,
+                (f'{{{field}}}', json_value, problem_id)
+            )
+            # Фиксируем транзакцию
+            conn.commit()
+            # Возвращаем True, если запись с таким id найдена и обновлена
+            return cur.rowcount > 0
+    finally:
+        # Обязательно возвращаем соединение в пул
         put_connection(conn)
 
 
